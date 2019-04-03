@@ -38,11 +38,11 @@ it('check buy tickets', async ()  => {
     // console.log("totalTickets", Number(totalTickets));
 
     var totalEthRaised = await contractSL.totalEthRaised.call();
-    assert.equal(0.003, Number(totalEthRaised/decimal));
+    assert.equal(0.02, Number(totalEthRaised/decimal));
     // console.log("totalEthRaised", Number(totalEthRaised/decimal));
 
     var balanceEth = await contractSL.balanceETH.call();
-    assert.equal(0.003, Number(balanceEth/decimal));
+    assert.equal(0.02, Number(balanceEth/decimal));
     // console.log("balanceEth", Number(balanceEth/decimal));
 
     await contractSL.sssssss();

@@ -212,6 +212,8 @@ contract TicketsStorage is Accessibility, Parameters  {
     uint public constant TYPE_6X45 = 6;
 
     enum TypeLottu {FOUR, FIVE, SIX, SEVEN, FOUR_TURBO, FIVE_TURBO, SIX_TURBO, SEVEN_TURBO}
+    uint[] private range = [20, 36, 45, 60, 20, 36, 45, 60];
+    uint[] private countNumberLottu = [4, 5, 6, 7, 4, 5, 6, 7];
 
     uint public priceTicket = 0.02 ether;
     uint public priceTicketTurbo = 0.008 ether;
@@ -223,6 +225,8 @@ contract TicketsStorage is Accessibility, Parameters  {
 
     uint private remainStepTS;
     uint private countStepTS;
+
+    uint private entropyNumber = 121;
 
     mapping (uint => mapping (uint => uint)) private countTickets;
     // currentRound -> typeLottu -> number ticket
@@ -252,7 +256,7 @@ contract TicketsStorage is Accessibility, Parameters  {
 
 
     event LogMakeDistribution(uint roundLottery, uint roundDistibution);
-    event LogHappyTicket(uint roundLottery, uint roundDistibution, uint happyTicket);
+    event LogHappyTicket(uint round, uint typeLottu, uint[] happyTicket);
 
 //    function isWinner(uint round, uint numberTicket) public view returns (bool) {
 //        return tickets[round][numberTicket].winnerRound > 0;
@@ -294,14 +298,7 @@ contract TicketsStorage is Accessibility, Parameters  {
     }
 
     function clearRound(uint round) public {
-//        countTickets[round][TYPE_4X20] = 0;
-//        countTickets[round][TYPE_5X36] = 0;
-//        countTickets[round][TYPE_6X45] = 0;
-//        countTickets[round][TYPE_7X60] = 0;
-
-        stepEntropy = 1;
-        remainStepTS = 0;
-        countStepTS = 0;
+        entropyNumber = 121;
     }
 
     function makeDistribution(uint round, uint typelottu, uint priceOfToken) public onlyOwner {
@@ -340,34 +337,51 @@ contract TicketsStorage is Accessibility, Parameters  {
 //        balanceWinner[round][tickets[round][happyNumber].wallet] = balanceWinner[round][tickets[round][happyNumber].wallet].add(amountPrize);
 //    }
 
-    function addHappyNumber(uint round, uint typeLottu, uint numCurTwist, uint happyNumber) public onlyOwner {
-        happyTickets[round][typeLottu].push(happyNumber);
-        emit LogHappyTicket(round, numCurTwist, happyNumber);
+    function makeAllHappyNumber(uint round) public onlyOwner {
+        for (uint i = 0; i < 8; i++) {
+            makeHappyNumber(round, i);
+        }
     }
 
-    function findHappyNumber(uint round) public onlyOwner returns(uint) {
-        stepEntropy++;
-        uint happyNumber = getRandomNumberTicket(stepEntropy, round);
-//        while (tickets[round][happyNumber].winnerRound > 0) {
-//            stepEntropy++;
-//            happyNumber++;
-//            if (happyNumber > countTickets[round]) {
-//                happyNumber = 1;
-//            }
-//        }
+    function makeHappyNumber(uint round, uint typeLottu) internal {
+        for (uint i = 0; i < countNumberLottu[typeLottu]; i++) {
+            uint happyNumber = findHappyNumbers(round, typeLottu);
+            happyTickets[round][typeLottu].push(happyNumber);
+        }
+        emit LogHappyTicket(round, typeLottu, happyTickets[round][typeLottu]);
+    }
+
+    function findHappyNumbers(uint round, uint typeLottu) public onlyOwner returns(uint) {
+        uint happyNumber = getRandomNumber(range[typeLottu]);
+        uint numberMember = 0;
+        while (checkRepeatNumber(happyNumber, round, typeLottu) == true) {
+            happyNumber++;
+            if (happyNumber > range[typeLottu]) {
+                happyNumber = 1;
+            }
+
+        }
         return happyNumber;
     }
 
-    function getRandomNumberTicket(uint entropy, uint round) public view returns(uint) {
-        require(countTickets[round][uint(TypeLottu.FOUR)] > 0, "number of tickets must be greater than 0");
-        uint randomFirst = maxRandom(block.number, msg.sender).div(now);
-        uint randomNumber = randomFirst.mul(entropy) % (countTickets[round][TYPE_4X20]);
-        if (randomNumber == 0) { randomNumber = 1;}
-        return randomNumber;
+    function checkRepeatNumber(uint happyNumber, uint round, uint typeLottu) internal view returns (bool isRepeat) {
+        isRepeat = false;
+        uint lenArray = happyTickets[round][typeLottu].length;
+        if (lenArray > 0) {
+            for (uint i = 0; i < lenArray; i++) {
+                if (happyTickets[round][typeLottu][i] == happyNumber) {
+                    isRepeat = true;
+                }
+            }
+        }
     }
 
-    function random(uint upper, uint blockn, address entropy) internal view returns (uint randomNumber) {
-        return maxRandom(blockn, entropy) % upper;
+    function getRandomNumber(uint range) internal returns(uint) {
+        entropyNumber = entropyNumber.add(1);
+        uint randomFirst = maxRandom(block.number, msg.sender).div(now);
+        uint randomNumber = randomFirst.mul(entropyNumber) % (66);
+        randomNumber = randomNumber % range;
+        return randomNumber + 1;
     }
 
     function maxRandom(uint blockn, address entropy) internal view returns (uint randomNumber) {
@@ -381,7 +395,6 @@ contract TicketsStorage is Accessibility, Parameters  {
     function roundEth(uint numerator, uint precision) internal pure returns(uint round) {
         if (precision > 0 && precision < 18) {
             uint256 _numerator = numerator / 10 ** (18 - precision - 1);
-            //            _numerator = (_numerator + 5) / 10;
             _numerator = (_numerator) / 10;
             round = (_numerator) * 10 ** (18 - precision);
         }
@@ -554,6 +567,8 @@ contract Lottu is Accessibility, Parameters {
     }
 
     function makeTwists() public notFromContract {
+        m_tickets.makeAllHappyNumber(currentRound);
+
         uint countTickets = m_tickets.getCountTickets(currentRound, TYPE_4X20);
         require(countTickets > MIN_TICKETS_BUY_FOR_ROUND, "the number of tickets purchased must be >= MIN_TICKETS_BUY_FOR_ROUND");
         if (!isTwist) {
@@ -596,8 +611,7 @@ contract Lottu is Accessibility, Parameters {
 
     function transferPrize(uint amountPrize, uint round, uint typeLottu) internal returns(bool) {
         if (address(this).balance > amountPrize) {
-            uint happyNumber = m_tickets.findHappyNumber(round);
-//            m_tickets.addHappyNumber(currentRound, numberCurrentTwist, happyNumber);
+            uint happyNumber = m_tickets.findHappyNumbers(round, typeLottu);
 //            m_tickets.addBalanceWinner(currentRound, amountPrize, happyNumber);
             (address payable wallet) =  m_tickets.ticketInfo(round, typeLottu, happyNumber);
             wallet.transfer(amountPrize);
