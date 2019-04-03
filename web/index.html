@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Sunday Lottery</title>
+    <script src="js/jquery-3.3.1.min.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.0/css/bootstrap.min.css">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.0/js/bootstrap.min.js"></script>
+
+    <style>
+        ul {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: url(images/image_1.jpg);
+            -moz-background-size: 100%; /* Firefox 3.6+ */
+            -webkit-background-size: 100%; /* Safari 3.1+ и Chrome 4.0+ */
+            -o-background-size: 100%; /* Opera 9.6+ */
+            background-size: 100%;
+        }
+
+        .footer {
+            flex: 0 0 auto;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <br><br>
+    <div class="card">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4 col-sm-4 col-lg-4">
+                    <h2 class="text-xs-center">
+                        Sunday Lottery
+                    </h2>
+                </div>
+                <div class="col-md-8 col-sm-8 col-lg-8">
+                    <p>время: <strong id="gmt">&nbsp; </strong></p>
+                    <div class="" id="divDappInfo">
+                        <div id="finish"></div>
+                    </div>
+                </div>
+            </div>
+            <p>&nbsp;</p>
+            <div class="row">
+                <div class="col-md-6 col-sm-6 col-lg-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Общие данные</h5>
+                            <p class="card-text"></p>
+                            Текущий статус проекта:
+                            <strong id="status"></strong>
+                            <p></p>
+                            Всего ETH ивестировано:
+                            <strong id="allEth"></strong>
+                            <p></p>
+                            Всего USD ивестировано:
+                            <strong id="allUsd"></strong>
+                            <p></p>
+                            Количество уникальных участников лотереи:
+                            <strong id="cntUniquePlayer"></strong>
+                            <p></p>
+                            Номер текущего раунда:
+                            <strong id="currentRound"></strong>
+                            <p></p>
+                            Куплено билетов в текущем раунде:
+                            <strong id="countTicketsCurrentRound"></strong>
+                            <p></p>
+                            Размер главного приза в текущем раунде:
+                            <strong id="amountMainPrize"></strong>
+                            <p></p>
+                            Баланс контракта:
+                            <strong id="balanceETH"></strong>
+                            <p></p>
+
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-sm-6 col-lg-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Результаты предыдущего раунда</h5>
+                            <p class="card-text"></p>
+                            Количество купленных билетов:
+                            <strong id="countTicketsLastRound"></strong>
+                            <p></p>
+                            Количество выигравших билетов:
+                            <strong id="countHappyTicketsLastRound"></strong>
+                            <p></p>
+                            Номера выигравших билетов:
+                            <strong id="happyNumbersLastRound"></strong>
+                            <p></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <p></p>
+            <p></p>
+
+            <div class="row">
+                <div class="col-md-12 col-sm-12 col-lg-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Личные данные</h5>
+                            <p class="card-text"></p>
+                            Адрес вашего кошелька:
+                            <strong id="walletAddress"></strong>
+                            <p></p>
+                            Всего потрачено средств на покупку билетов (всего/в этом раунде):
+                            <strong id="balancePlayerAll"></strong><strong>&nbsp;/&nbsp;</strong><strong id="balancePlayerCurr"></strong>
+                            <p></p>
+                            Выиграно (всего/в предыдущем раунде):
+                            <strong id="balanceWinnerAll"></strong><strong>&nbsp;/&nbsp;</strong><strong id="balanceWinnerCurr"></strong>
+                            <p></p>
+                            <div class="row">
+                                <div class="col-md-12 col-sm-12 col-lg-12">
+                                    <h6>Введите сумму в ETH для покупки билетов:</h6>
+                                    <input id="investment" name="investment" value="" type="text">
+                                    <strong>&nbsp;&nbsp; ETH</strong>
+                                    <p></p>
+
+                                    <button class="btn btn-primary btn-sm" id="invest" onclick="buyTicket();">Купить
+                                        билеты
+                                    </button>
+                                    <p></p>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+            </div> <!-- end row -->
+
+            <p>&nbsp;</p>
+            <div class="row">
+                <div class="col-md-12 col-sm-12 col-lg-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Проведение розыгрыша</h5>
+                            <p class="card-text"></p>
+                            Оставшееся количество раундов по определению победителей:
+                            <strong id="countRoundPlay"></strong>
+                            <p></p>
+                            Количество победителй по категориям:
+                            <strong id="countTypeWinner"></strong>
+                            <p></p>
+                            Общая сумма выигрыша по категориям:
+                            <strong id="amountTypeWinner"></strong>
+                            <p></p>
+                            <div class="row">
+                                <div class="col-md-12 col-sm-12 col-lg-12">
+                                    <button class="btn btn-primary btn-sm" id="twist" onclick="makeTwist();">Запустить барабан
+                                    </button>
+                                    <p></p>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div> <!-- end row -->
+
+
+            <p>&nbsp;</p>
+            <div class="row">
+                <div class="col-md-12 col-sm-12 col-lg-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6>5 последних транзакций</h6>
+                            <table id="myPlans" class="table table-striped">
+                                <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Amount</th>
+                                    <th>TxHash</th>
+                                </tr>
+                                </thead>
+                                <tbody id="myTableBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h6>Введите тестовую дату:</h6>
+                        <input id="simulateDate" name="simulateDate" value="" type="text">
+                        <strong>&nbsp;&nbsp; </strong>
+                        <p></p>
+                        <button class="btn btn-primary btn-sm" id="simulateDate" onclick="simulateDate();">Установить
+                            новую дату
+                        </button>
+                        <p></p>
+
+                    </div>
+                </div>
+            </div>
+
+            <p></p>
+
+        </div>
+    </div>
+</div>
+<footer>
+    <div class="navbar-fixed-bottom row-fluid">
+        <div class="navbar-inner">
+            <div class="container">
+                <div class="footer-copyright py-3 text-center">
+                    © 2019 Copyright
+                </div>
+            </div>
+        </div>
+    </div>
+</footer>
+<input id="abiContract" name="abiContract" value="" type="hidden">
+
+<script src="metaScript.js" type="text/javascript" charset="utf-8"></script>
+
+</body>
+</html>
