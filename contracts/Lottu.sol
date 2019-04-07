@@ -207,12 +207,6 @@ contract TicketsStorage is Accessibility, Parameters {
         uint typeLottu;
     }
 
-    uint public constant TYPE_4X20 = 4;
-    uint public constant TYPE_4X20_TURBO = 4;
-    uint public constant TYPE_5X36 = 5;
-    uint public constant TYPE_5X36_TURBO = 4;
-    uint public constant TYPE_6X45 = 6;
-
     enum TypeLottu {FOUR, FIVE, SIX, SEVEN, FOUR_TURBO, FIVE_TURBO, SIX_TURBO, SEVEN_TURBO}
     uint[] private range = [20, 36, 45, 60, 20, 36, 45, 60];
     uint[] private countNumberLottu = [4, 5, 6, 7, 4, 5, 6, 7];
@@ -221,8 +215,6 @@ contract TicketsStorage is Accessibility, Parameters {
 
     uint public priceTicket = 0.02 ether;
     uint public priceTicketTurbo = 0.008 ether;
-
-    uint public constant TYPE_7X60 = 7;
 
     uint private stepEntropy = 1;
     uint private precisionPay = 4;
@@ -250,17 +242,9 @@ contract TicketsStorage is Accessibility, Parameters {
     mapping(uint => mapping(uint => mapping(uint => uint[]))) private winTickets;
     // currentRound -> typeLottu -> typeWinner -> array winner tickets
 
-    Percent.percent private percentTicketPrize_2 = Percent.percent(1, 100);            // 1.0 %
-    Percent.percent private percentTicketPrize_3 = Percent.percent(4, 100);            // 4.0 %
-    Percent.percent private percentTicketPrize_4 = Percent.percent(10, 100);            // 10.0 %
-    Percent.percent private percentTicketPrize_5 = Percent.percent(35, 100);            // 35.0 %
-
-    Percent.percent private percentAmountPrize_1 = Percent.percent(1797, 10000);            // 17.97%
-    Percent.percent private percentAmountPrize_2 = Percent.percent(1000, 10000);            // 10.00%
-    Percent.percent private percentAmountPrize_3 = Percent.percent(1201, 10000);            // 12.01%
-    Percent.percent private percentAmountPrize_4 = Percent.percent(2000, 10000);            // 20.00%
-    Percent.percent private percentAmountPrize_5 = Percent.percent(3502, 10000);            // 35.02%
-
+    Percent.percent private percentTicketPrize_1 = Percent.percent(874, 1000);          // 87.4 %
+    Percent.percent private percentTicketPrize_2 = Percent.percent(10, 100);            // 10.0 %
+    Percent.percent private percentTicketPrize_3 = Percent.percent(26, 1000);           // 2.6 %
 
     event LogMakeDistribution(uint roundLottery, uint roundDistibution);
     event LogHappyTicket(uint round, uint typeLottu, uint[] happyTicket);
@@ -369,22 +353,14 @@ contract TicketsStorage is Accessibility, Parameters {
         return true;
     }
 
-//    function transferPriseWinner(uint round) public onlyOwner returns (bool isFinishDefineWinner){
-//        isFinishDefineWinner = false;
-//        if (countTwist[typeLottuDefineWinner] > 0) {
-//            if (defineWinnerByTypeLottu(round, typeLottuDefineWinner)) {
-//                typeLottuDefineWinner++;
-//                if (typeLottuDefineWinner == 8) {
-//                    isFinishDefineWinner = true;
-//                }
-//            }
-//        } else {
-//            typeLottuDefineWinner++;
-//            if (typeLottuDefineWinner == 8) {
-//                isFinishDefineWinner = true;
-//            }
-//        }
-//    }
+    function transferPrizeWinner(uint round) public onlyOwner returns (bool isFinishTransfer){
+        isFinishTransfer = false;
+        uint prizeTypeLottu1 = countTickets[round][0].mul(priceTicket);
+        uint cw_1 = percentTicketPrize_1.mmul(prizeTypeLottu1);
+        uint cw_2 = percentTicketPrize_2.mmul(prizeTypeLottu1);
+        uint cw_3 = percentTicketPrize_3.mmul(prizeTypeLottu1);
+
+    }
 
     function getCountTickets(uint round, uint typeLottu) public view returns (uint) {
         return countTickets[round][typeLottu];
@@ -491,11 +467,6 @@ contract Lottu is Accessibility, Parameters {
     TicketsStorage private m_tickets;
     Parameters private m_parameters;
     mapping(address => bool) private notUnigue;
-
-    uint public constant TYPE_4X20 = 4;
-    uint public constant TYPE_5X36 = 5;
-    uint public constant TYPE_6X45 = 6;
-    uint public constant TYPE_7X60 = 7;
 
     address payable public administrationWallet;
 
