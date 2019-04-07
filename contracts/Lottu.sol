@@ -32,32 +32,32 @@ library Zero {
         require(val != 0, "require not zero value");
     }
 
-    function notZero(address addr) internal pure returns(bool) {
+    function notZero(address addr) internal pure returns (bool) {
         return !(addr == address(0));
     }
 
-    function isZero(address addr) internal pure returns(bool) {
+    function isZero(address addr) internal pure returns (bool) {
         return addr == address(0);
     }
 
-    function isZero(uint a) internal pure returns(bool) {
+    function isZero(uint a) internal pure returns (bool) {
         return a == 0;
     }
 
-    function notZero(uint a) internal pure returns(bool) {
+    function notZero(uint a) internal pure returns (bool) {
         return a != 0;
     }
 }
 
 library Address {
-    function toAddress(bytes memory source) internal pure returns(address addr) {
-        assembly { addr := mload(add(source,0x14)) }
+    function toAddress(bytes memory source) internal pure returns (address addr) {
+        assembly {addr := mload(add(source, 0x14))}
         return addr;
     }
 
-    function isNotContract(address addr) internal view returns(bool) {
+    function isNotContract(address addr) internal view returns (bool) {
         uint length;
-        assembly { length := extcodesize(addr) }
+        assembly {length := extcodesize(addr)}
         return length == 0;
     }
 }
@@ -87,7 +87,8 @@ library SafeMath {
     * @dev Integer division of two numbers truncating the quotient, reverts on division by zero.
     */
     function div(uint256 _a, uint256 _b) internal pure returns (uint256) {
-        require(_b > 0); // Solidity only automatically asserts when dividing by 0
+        require(_b > 0);
+        // Solidity only automatically asserts when dividing by 0
         uint256 c = _a / _b;
         // assert(_a == _b * c + _a % _b); // There is no case in which this doesn't hold
 
@@ -126,11 +127,11 @@ library Percent {
         if (a == 0) {
             return 0;
         }
-        return a*p.num/p.den;
+        return a * p.num / p.den;
     }
 
     function div(percent storage p, uint a) internal view returns (uint) {
-        return a/p.num*p.den;
+        return a / p.num * p.den;
     }
 
     function sub(percent storage p, uint a) internal view returns (uint) {
@@ -153,11 +154,11 @@ library Percent {
         if (a == 0) {
             return 0;
         }
-        return a*p.num/p.den;
+        return a * p.num / p.den;
     }
 
     function mdiv(percent memory p, uint a) internal pure returns (uint) {
-        return a/p.num*p.den;
+        return a / p.num * p.den;
     }
 
     function msub(percent memory p, uint a) internal pure returns (uint) {
@@ -176,6 +177,7 @@ library Percent {
 
 contract Accessibility {
     address private owner;
+
     event OwnerChanged(address indexed previousOwner, address indexed newOwner);
 
     modifier onlyOwner() {
@@ -195,7 +197,7 @@ contract Accessibility {
 }
 
 
-contract TicketsStorage is Accessibility, Parameters  {
+contract TicketsStorage is Accessibility, Parameters {
     using SafeMath for uint;
     using Percent for Percent.percent;
 
@@ -214,6 +216,8 @@ contract TicketsStorage is Accessibility, Parameters  {
     enum TypeLottu {FOUR, FIVE, SIX, SEVEN, FOUR_TURBO, FIVE_TURBO, SIX_TURBO, SEVEN_TURBO}
     uint[] private range = [20, 36, 45, 60, 20, 36, 45, 60];
     uint[] private countNumberLottu = [4, 5, 6, 7, 4, 5, 6, 7];
+    uint[] private countTwist = [0,0,0,0, 0,0,0,0];
+    uint[] private countTransaction = [5,4,2,2, 5,4,2,2];
 
     uint public priceTicket = 0.02 ether;
     uint public priceTicketTurbo = 0.008 ether;
@@ -224,53 +228,57 @@ contract TicketsStorage is Accessibility, Parameters  {
     uint private precisionPay = 4;
 
     uint private remainStepTS;
-    uint private countStepTS;
 
     uint private entropyNumber = 121;
+    uint private typeLottuDefineWinner = 0;
 
-    mapping (uint => mapping (uint => uint)) private countTickets;
+    mapping(uint => mapping(uint => uint)) private countTickets;
     // currentRound -> typeLottu -> number ticket
 
-    mapping (uint => mapping (uint => mapping (uint => Ticket))) private tickets;
+    mapping(uint => mapping(uint => mapping(uint => Ticket))) private tickets;
     // currentRound -> typeLottu -> number ticket -> Ticket
 
-    mapping (uint => mapping (address => uint)) private balancePlayer;
+    mapping(uint => mapping(address => uint)) private balancePlayer;
     // currentRound -> wallet -> balance player
 
-    mapping (uint => mapping (address => uint)) private balanceWinner;
+    mapping(uint => mapping(address => uint)) private balanceWinner;
     // currentRound -> wallet -> balance winner
 
-    mapping (uint => mapping (uint => uint[])) private happyTickets;
+    mapping(uint => mapping(uint => uint[])) private happyTickets;
     // currentRound -> typeLottu -> array happy tickets
 
-    Percent.percent private percentTicketPrize_2 = Percent.percent(1,100);            // 1.0 %
-    Percent.percent private percentTicketPrize_3 = Percent.percent(4,100);            // 4.0 %
-    Percent.percent private percentTicketPrize_4 = Percent.percent(10,100);            // 10.0 %
-    Percent.percent private percentTicketPrize_5 = Percent.percent(35,100);            // 35.0 %
+    mapping(uint => mapping(uint => mapping(uint => uint[]))) private winTickets;
+    // currentRound -> typeLottu -> typeWinner -> array winner tickets
 
-    Percent.percent private percentAmountPrize_1 = Percent.percent(1797,10000);            // 17.97%
-    Percent.percent private percentAmountPrize_2 = Percent.percent(1000,10000);            // 10.00%
-    Percent.percent private percentAmountPrize_3 = Percent.percent(1201,10000);            // 12.01%
-    Percent.percent private percentAmountPrize_4 = Percent.percent(2000,10000);            // 20.00%
-    Percent.percent private percentAmountPrize_5 = Percent.percent(3502,10000);            // 35.02%
+    Percent.percent private percentTicketPrize_2 = Percent.percent(1, 100);            // 1.0 %
+    Percent.percent private percentTicketPrize_3 = Percent.percent(4, 100);            // 4.0 %
+    Percent.percent private percentTicketPrize_4 = Percent.percent(10, 100);            // 10.0 %
+    Percent.percent private percentTicketPrize_5 = Percent.percent(35, 100);            // 35.0 %
+
+    Percent.percent private percentAmountPrize_1 = Percent.percent(1797, 10000);            // 17.97%
+    Percent.percent private percentAmountPrize_2 = Percent.percent(1000, 10000);            // 10.00%
+    Percent.percent private percentAmountPrize_3 = Percent.percent(1201, 10000);            // 12.01%
+    Percent.percent private percentAmountPrize_4 = Percent.percent(2000, 10000);            // 20.00%
+    Percent.percent private percentAmountPrize_5 = Percent.percent(3502, 10000);            // 35.02%
 
 
     event LogMakeDistribution(uint roundLottery, uint roundDistibution);
     event LogHappyTicket(uint round, uint typeLottu, uint[] happyTicket);
+    event LogWinnerTicket(uint round, uint typeLottu, uint numberTicket, uint countNumbers);
 
-//    function isWinner(uint round, uint numberTicket) public view returns (bool) {
-//        return tickets[round][numberTicket].winnerRound > 0;
-//    }
+    //    function isWinner(uint round, uint numberTicket) public view returns (bool) {
+    //        return tickets[round][numberTicket].winnerRound > 0;
+    //    }
 
     function getBalancePlayer(uint round, address wallet) public view returns (uint) {
         return balancePlayer[round][wallet];
     }
 
-//    function getBalanceWinner(uint round, address wallet) public view returns (uint) {
-//        return balanceWinner[round][wallet];
-//    }
+    //    function getBalanceWinner(uint round, address wallet) public view returns (uint) {
+    //        return balanceWinner[round][wallet];
+    //    }
 
-    function ticketInfo(uint round, uint typeLottu, uint numberTicket) public view returns(address payable wallet) {
+    function ticketInfo(uint round, uint typeLottu, uint numberTicket) public view returns (address payable wallet) {
         Ticket memory ticket = tickets[round][typeLottu][numberTicket];
         wallet = ticket.wallet;
     }
@@ -288,6 +296,38 @@ contract TicketsStorage is Accessibility, Parameters  {
         balancePlayer[round][wallet] = balancePlayer[round][wallet].add(priceOfToken);
     }
 
+    function processCalcWinnerNumbersAllUser(uint round, uint typeLottu, uint currIndex) internal {
+        uint cnt = countTickets[round][typeLottu];
+        uint maxCount = cnt.add(1);
+        if (cnt > 0) {
+            if (currIndex.add(countTransaction[typeLottu]) < maxCount ) {
+                maxCount = currIndex.add(countTransaction[typeLottu]);
+            }
+            for (uint i = currIndex; i < maxCount; i++) {
+                uint calc = calcCountWinnerNumbersOneUser(happyTickets[round][typeLottu], tickets[round][typeLottu][i].numbers);
+                if (calc > 0) {
+                    winTickets[round][typeLottu][calc].push(i);
+                    emit LogWinnerTicket(round, typeLottu, i, calc);
+                }
+            }
+        }
+    }
+
+    function calcCountWinnerNumbersOneUser(uint[] memory numbersHappy, uint[] memory numbersUser) internal returns (uint countWinnerNumbers) {
+        uint lenHappy = numbersHappy.length;
+        uint lenUser = numbersUser.length;
+        countWinnerNumbers = 0;
+        if (lenHappy > 0 && lenUser > 0 && lenHappy == lenUser) {
+            for (uint i = 0; i < lenHappy; i++) {
+                for (uint j = 0; j < lenUser; j++) {
+                    if (numbersHappy[i] == numbersUser[j]) {
+                        countWinnerNumbers++;
+                    }
+                }
+            }
+        }
+    }
+
     function calcCostTicket(uint typeLottu, uint repeat) public view onlyOwner returns (uint cost) {
         if (typeLottu > 3) {
             cost = priceTicketTurbo;
@@ -298,44 +338,83 @@ contract TicketsStorage is Accessibility, Parameters  {
     }
 
     function clearRound(uint round) public {
-        entropyNumber = 121;
-    }
-
-    function makeDistribution(uint round, uint typelottu, uint priceOfToken) public onlyOwner {
-        uint count = countTickets[round][TYPE_4X20];
-        uint amountEthCurrentRound = count.mul(priceOfToken);
-
-        if (happyTickets[round][typelottu].length > 0) {
-            delete happyTickets[round][typelottu];
+        if (entropyNumber > 300) {
+            entropyNumber = 121;
         }
     }
+
+    function defineWinner(uint round) public onlyOwner returns (bool isFinishDefineWinner){
+        isFinishDefineWinner = false;
+        if (countTwist[typeLottuDefineWinner] > 0) {
+            if (defineWinnerByTypeLottu(round, typeLottuDefineWinner)) {
+                typeLottuDefineWinner++;
+                if (typeLottuDefineWinner == 8) {
+                    isFinishDefineWinner = true;
+                }
+            }
+        } else {
+            typeLottuDefineWinner++;
+            if (typeLottuDefineWinner == 8) {
+                isFinishDefineWinner = true;
+            }
+        }
+    }
+
+    function defineWinnerByTypeLottu(uint round, uint typelottu) internal returns (bool) {
+        if (countTwist[typelottu] > 0) {
+            countTwist[typelottu] = countTwist[typelottu].sub(1);
+            processCalcWinnerNumbersAllUser(round, typelottu, countTwist[typelottu].mul(countTransaction[typelottu]).add(1));
+            return false;
+        }
+        return true;
+    }
+
+//    function transferPriseWinner(uint round) public onlyOwner returns (bool isFinishDefineWinner){
+//        isFinishDefineWinner = false;
+//        if (countTwist[typeLottuDefineWinner] > 0) {
+//            if (defineWinnerByTypeLottu(round, typeLottuDefineWinner)) {
+//                typeLottuDefineWinner++;
+//                if (typeLottuDefineWinner == 8) {
+//                    isFinishDefineWinner = true;
+//                }
+//            }
+//        } else {
+//            typeLottuDefineWinner++;
+//            if (typeLottuDefineWinner == 8) {
+//                isFinishDefineWinner = true;
+//            }
+//        }
+//    }
 
     function getCountTickets(uint round, uint typeLottu) public view returns (uint) {
         return countTickets[round][typeLottu];
     }
 
-    function getCountTwist(uint countsTickets, uint maxCountTicketByStep) public returns(uint countTwist) {
-        countTwist = countsTickets.div(2).div(maxCountTicketByStep);
-        if (countsTickets > countTwist.mul(2).mul(maxCountTicketByStep)) {
-            remainStepTS = countsTickets.sub(countTwist.mul(2).mul(maxCountTicketByStep));
-            countTwist++;
+    function defineCountTwist(uint round) public {
+        // type 0 - 5 * 16 = 80
+        // type 1 - 4 * 25 = 100
+        // type 2 - 2 * 36 = 72
+        // type 3 - 2 * 49 = 98
+        for (uint typeLottu=0; typeLottu<8; typeLottu++) {
+            countTwist[typeLottu] = countTwist[typeLottu].add(countTickets[round][typeLottu].div(countTransaction[typeLottu]));
+            if ( (countTickets[round][typeLottu] % countTransaction[typeLottu]) > 0) {
+                countTwist[typeLottu] = countTwist[typeLottu].add(1);
+            }
         }
-        countStepTS = countTwist;
-
+        typeLottuDefineWinner = 0;
     }
 
     function getHappyTickets(uint round, uint typeLottu) public view returns (uint[] memory value) {
-        value =  happyTickets[round][typeLottu];
+        value = happyTickets[round][typeLottu];
     }
 
     function getStepTransfer() public view returns (uint stepTransfer, uint remainTicket) {
-        stepTransfer = countStepTS;
         remainTicket = remainStepTS;
     }
 
-//    function addBalanceWinner(uint round, uint amountPrize, uint happyNumber) public onlyOwner {
-//        balanceWinner[round][tickets[round][happyNumber].wallet] = balanceWinner[round][tickets[round][happyNumber].wallet].add(amountPrize);
-//    }
+    //    function addBalanceWinner(uint round, uint amountPrize, uint happyNumber) public onlyOwner {
+    //        balanceWinner[round][tickets[round][happyNumber].wallet] = balanceWinner[round][tickets[round][happyNumber].wallet].add(amountPrize);
+    //    }
 
     function makeAllHappyNumber(uint round) public onlyOwner {
         for (uint i = 0; i < 8; i++) {
@@ -351,7 +430,7 @@ contract TicketsStorage is Accessibility, Parameters  {
         emit LogHappyTicket(round, typeLottu, happyTickets[round][typeLottu]);
     }
 
-    function findHappyNumbers(uint round, uint typeLottu) public onlyOwner returns(uint) {
+    function findHappyNumbers(uint round, uint typeLottu) public onlyOwner returns (uint) {
         uint happyNumber = getRandomNumber(range[typeLottu]);
         uint numberMember = 0;
         while (checkRepeatNumber(happyNumber, round, typeLottu) == true) {
@@ -376,11 +455,11 @@ contract TicketsStorage is Accessibility, Parameters  {
         }
     }
 
-    function getRandomNumber(uint range) internal returns(uint) {
+    function getRandomNumber(uint rangeNumber) internal returns (uint) {
         entropyNumber = entropyNumber.add(1);
         uint randomFirst = maxRandom(block.number, msg.sender).div(now);
         uint randomNumber = randomFirst.mul(entropyNumber) % (66);
-        randomNumber = randomNumber % range;
+        randomNumber = randomNumber % rangeNumber;
         return randomNumber + 1;
     }
 
@@ -392,7 +471,7 @@ contract TicketsStorage is Accessibility, Parameters  {
             ));
     }
 
-    function roundEth(uint numerator, uint precision) internal pure returns(uint round) {
+    function roundEth(uint numerator, uint precision) internal pure returns (uint round) {
         if (precision > 0 && precision < 18) {
             uint256 _numerator = numerator / 10 ** (18 - precision - 1);
             _numerator = (_numerator) / 10;
@@ -411,7 +490,7 @@ contract Lottu is Accessibility, Parameters {
 
     TicketsStorage private m_tickets;
     Parameters private m_parameters;
-    mapping (address => bool) private notUnigue;
+    mapping(address => bool) private notUnigue;
 
     uint public constant TYPE_4X20 = 4;
     uint public constant TYPE_5X36 = 5;
@@ -467,22 +546,18 @@ contract Lottu is Accessibility, Parameters {
     }
 
     function getHappyTickets(uint round, uint typeLottu) public view returns (uint[] memory value) {
-        value =  m_tickets.getHappyTickets(round, typeLottu);
+        value = m_tickets.getHappyTickets(round, typeLottu);
     }
 
     function getTicketInfo(uint round, uint typeLottu, uint index) public view returns (address payable wallet) {
-        (wallet) =  m_tickets.ticketInfo(round, typeLottu, index);
+        (wallet) = m_tickets.ticketInfo(round, typeLottu, index);
     }
 
     function getStepTransfer() public view returns (uint stepTransferVal, uint remainTicketVal) {
         (stepTransferVal, remainTicketVal) = m_tickets.getStepTransfer();
     }
 
-    function loadCountStep() internal {
-        (countStep, remainStep) = m_tickets.getStepTransfer();
-    }
-
-    function balanceETH() external view returns(uint) {
+    function balanceETH() external view returns (uint) {
         return address(this).balance;
     }
 
@@ -493,7 +568,7 @@ contract Lottu is Accessibility, Parameters {
     }
 
     function buyTicket(address payable _addressPlayer, uint[] memory msgData) public payable notFromContract balanceChanged {
-        uint investment =  msg.value;
+        uint investment = msg.value;
         require(!isTwist, "Ticket purchase is prohibited during the twist");
         (uint typeLottu, uint repeat, uint[] memory numbers) = parseMsgData(msgData);
         require(repeat < 20, "Maximum number of draws exceeded");
@@ -506,7 +581,7 @@ contract Lottu is Accessibility, Parameters {
             refundEth(msg.sender, investment.sub(amountEth));
         }
 
-        for (uint i=0; i < repeat.add(1); i++) {
+        for (uint i = 0; i < repeat.add(1); i++) {
             m_tickets.newTicket(currentRound.add(i), _addressPlayer, numbers, typeLottu);
             emit LogNewTicket(_addressPlayer, now, currentRound.add(i), numbers);
         }
@@ -523,13 +598,13 @@ contract Lottu is Accessibility, Parameters {
     function parseMsgData(uint[] memory msgData) internal pure returns (uint typeLottu, uint repeat, uint[] memory numbers) {
         typeLottu = msgData[0];
         repeat = msgData[1];
-        numbers = new uint [](msgData.length-2);
+        numbers = new uint [](msgData.length - 2);
         for (uint i = 2; i < msgData.length; i++) {
-            numbers[i-2] = msgData[i];
+            numbers[i - 2] = msgData[i];
         }
     }
 
-    function getDigitFromByte(byte input) private pure returns(uint digit) {
+    function getDigitFromByte(byte input) private pure returns (uint digit) {
         byte val = input & 0x0f;
         if (val == 0x00) {
             digit = 0;
@@ -567,53 +642,25 @@ contract Lottu is Accessibility, Parameters {
     }
 
     function makeTwists() public notFromContract {
-        m_tickets.makeAllHappyNumber(currentRound);
-
-        uint countTickets = m_tickets.getCountTickets(currentRound, TYPE_4X20);
-        require(countTickets > MIN_TICKETS_BUY_FOR_ROUND, "the number of tickets purchased must be >= MIN_TICKETS_BUY_FOR_ROUND");
         if (!isTwist) {
-            numberCurrentTwist = m_tickets.getCountTwist(countTickets, maxNumberStepCircle);
-            m_tickets.makeDistribution(currentRound, TYPE_4X20, PRICE_OF_TOKEN);
+            m_tickets.makeAllHappyNumber(currentRound);
+            m_tickets.defineCountTwist(currentRound);
             isTwist = true;
-            loadCountStep();
         } else {
-            if (numberCurrentTwist > 0) {
-                play(currentRound, maxNumberStepCircle);
-                emit Play(currentRound, numberCurrentTwist);
-                numberCurrentTwist--;
-                if (numberCurrentTwist == 0) {
-                    isTwist = false;
-                    currentRound++;
-                    m_tickets.clearRound(currentRound);
-                    sendToAdministration();
-                }
+            if (m_tickets.defineWinner(currentRound)) {
+                isTwist = false;
+                currentRound++;
+                m_tickets.clearRound(currentRound);
+                sendToAdministration();
             }
         }
     }
 
-    function play(uint round, uint maxCountTicketByStep) internal {
-        uint countTransfer = 0;
-        uint numberTransfer = 0;
-        if (remainStep > 0) {
-            if (countStep > 1) {
-                countTransfer = maxCountTicketByStep;
-            } else {
-                countTransfer = remainStep;
-            }
-        } else {
-            countTransfer = maxCountTicketByStep;
-        }
-
-        if (countStep > 0) {
-            countStep--;
-        }
-    }
-
-    function transferPrize(uint amountPrize, uint round, uint typeLottu) internal returns(bool) {
+    function transferPrize(uint amountPrize, uint round, uint typeLottu) internal returns (bool) {
         if (address(this).balance > amountPrize) {
             uint happyNumber = m_tickets.findHappyNumbers(round, typeLottu);
-//            m_tickets.addBalanceWinner(currentRound, amountPrize, happyNumber);
-            (address payable wallet) =  m_tickets.ticketInfo(round, typeLottu, happyNumber);
+            //            m_tickets.addBalanceWinner(currentRound, amountPrize, happyNumber);
+            (address payable wallet) = m_tickets.ticketInfo(round, typeLottu, happyNumber);
             wallet.transfer(amountPrize);
             return true;
         } else {
@@ -630,9 +677,9 @@ contract Lottu is Accessibility, Parameters {
         return m_tickets.getBalancePlayer(round, wallet);
     }
 
-//    function getBalanceWinner(uint round, address wallet) external view returns (uint) {
-//        return m_tickets.getBalanceWinner(round, wallet);
-//    }
+    //    function getBalanceWinner(uint round, address wallet) external view returns (uint) {
+    //        return m_tickets.getBalanceWinner(round, wallet);
+    //    }
 
     function getCurrentDate() public view returns (uint) {
         if (isDemo) {
