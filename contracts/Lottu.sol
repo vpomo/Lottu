@@ -16,8 +16,6 @@ contract Parameters {
 
     uint public numberCurrentTwist;
 
-    bool public isTwist;
-
     bool public isDemo;
     uint public simulateDate;
 
@@ -218,8 +216,6 @@ contract TicketsStorage is Accessibility, Parameters {
 
     uint private stepEntropy = 1;
     uint private precisionPay = 4;
-
-    uint private remainStepTS;
 
     uint private entropyNumber = 121;
     uint private typeLottuDefineWinner = 0;
@@ -499,8 +495,11 @@ contract Lottu is Accessibility, Parameters {
 
     address payable public administrationWallet;
 
-    uint private remainStep;
-    uint private countStep;
+    uint public transferTypeLottu;
+    uint public countTransfer;
+
+    bool public isTwist;
+    bool public isTransferPrize;
 
     // more events for easy read from blockchain
     event LogNewTicket(address indexed addr, uint when, uint round, uint[] numbers);
@@ -648,13 +647,32 @@ contract Lottu is Accessibility, Parameters {
                 isTwist = false;
                 currentRound++;
                 m_tickets.clearRound();
+                isTransferPrize = true;
                 sendToAdministration();
+                transferTypeLottu = 0;
+                countTransfer = 0;
             }
         }
     }
 
-    function makeTransferPrize() internal returns (bool) {
-        uint typeLottu = 0;
+    function transferPrize() public returns (bool) {
+        if (isTransferPrize) {
+            while (transferTypeLottu < 8) {
+                makeTransferPrizeByTypeLottu(transferTypeLottu);
+                transferTypeLottu++;
+                if (countTransfer > 80) {
+                    countTransfer = 0;
+                    return false;
+                }
+            }
+            if (transferTypeLottu > 7) {
+                isTransferPrize = false;
+                return true;
+            }
+        }
+    }
+
+    function makeTransferPrizeByTypeLottu(uint typeLottu) internal returns (bool) {
     (
     uint prize_1,
     uint prize_2,
@@ -663,15 +681,21 @@ contract Lottu is Accessibility, Parameters {
     uint[] memory winNumberTickets_2,
     uint[] memory winNumberTickets_3
     ) = m_tickets.calcPrizeWinner(currentRound, typeLottu);
-        transferPrize(prize_1, winNumberTickets_1, typeLottu);
-        transferPrize(prize_2, winNumberTickets_2, typeLottu);
-        transferPrize(prize_3, winNumberTickets_3, typeLottu);
+        if (typeLottu < 4) {
+            transferPrizeByTypeWinner(prize_1, winNumberTickets_1, typeLottu);
+            transferPrizeByTypeWinner(prize_2, winNumberTickets_2, typeLottu);
+            transferPrizeByTypeWinner(prize_3, winNumberTickets_3, typeLottu);
+        } else {
+            transferPrizeByTypeWinner(prize_1, winNumberTickets_1, typeLottu);
+            transferPrizeByTypeWinner(prize_2, winNumberTickets_2, typeLottu);
+        }
     }
 
-    function transferPrize(uint prize, uint[] memory winNumberTickets, uint typeLottu) internal returns (bool) {
+    function transferPrizeByTypeWinner(uint prize, uint[] memory winNumberTickets, uint typeLottu) internal returns (bool) {
         if (address(this).balance > prize.mul(winNumberTickets.length)) {
             for (uint i=0; i<winNumberTickets.length; i++) {
                 (address payable wallet,,) = m_tickets.ticketInfo(currentRound, typeLottu, winNumberTickets[i]);
+                countTransfer++;
                 wallet.transfer(prize);
             }
             return true;
