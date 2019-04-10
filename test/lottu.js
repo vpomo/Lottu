@@ -24,28 +24,44 @@ it('get address contract', async ()  => {
 });
 
 it('check buy tickets', async ()  => {
+    // msgData = [type, repeat, numbers[]]
     await contractSL.setDemo({from:accounts[0]});
     await contractSL.setSimulateDate(1541066480); //Thu, 01 Nov 2018 10:01:20 GMT
-    var msgData = [2,1,23,45,12,10];
+    var msgData_0 = [0,1,2,9,12,19];
+    var msgData_4 = [4,0,3,11,14,20];
+    var msgData_1 = [1,1,2,9,12,19, 32];
+    var msgData_5 = [5,0,3,11,14,20, 33];
+    var msgData_2 = [2,1,2,9,12,19, 32, 42];
+    var msgData_6 = [6,0,3,11,14,20,33, 44];
+    var msgData_3 = [3,1,2,9,12,19, 32, 42, 53];
+    var msgData_7 = [7,0,3,11,14,20,33, 44, 57];
 
-    await contractSL.buyTicket(accounts[1], msgData, {from:accounts[1], value: buyEthOne});
+    await contractSL.buyTicket(accounts[0], msgData_0, {from:accounts[0], value: buyEthOne});
+    await contractSL.buyTicket(accounts[1], msgData_1, {from:accounts[1], value: buyEthOne});
+    await contractSL.buyTicket(accounts[2], msgData_2, {from:accounts[2], value: buyEthOne});
+    await contractSL.buyTicket(accounts[3], msgData_3, {from:accounts[3], value: buyEthOne});
+
+    await contractSL.buyTicket(accounts[4], msgData_4, {from:accounts[4], value: buyEthOne});
+    await contractSL.buyTicket(accounts[5], msgData_5, {from:accounts[5], value: buyEthOne});
+    await contractSL.buyTicket(accounts[6], msgData_6, {from:accounts[6], value: buyEthOne});
+    await contractSL.buyTicket(accounts[7], msgData_7, {from:accounts[7], value: buyEthOne});
 
     var uniquePlayer = await contractSL.uniquePlayer.call();
-    assert.equal(1, Number(uniquePlayer));
+    assert.equal(8, Number(uniquePlayer));
     // console.log("uniquePlayer", Number(uniquePlayer));
     var totalTickets = await contractSL.totalTicketBuyed.call();
-    assert.equal(1, Number(totalTickets));
+    assert.equal(12, Number(totalTickets));
     // console.log("totalTickets", Number(totalTickets));
 
     var totalEthRaised = await contractSL.totalEthRaised.call();
-    assert.equal(0.02, Number(totalEthRaised/decimal));
+    assert.equal(0.08, Number(totalEthRaised/decimal));
     // console.log("totalEthRaised", Number(totalEthRaised/decimal));
 
     var balanceEth = await contractSL.balanceETH.call();
-    assert.equal(0.02, Number(balanceEth/decimal));
+    assert.equal(0.08, Number(balanceEth/decimal));
     // console.log("balanceEth", Number(balanceEth/decimal));
 
-    await contractSL.sssssss();
+    //await contractSL.sssssss();
 
 });
 
@@ -70,71 +86,62 @@ assert.equal(true, isSunday);
 });
 */
 
-/*
 it('check make distribution', async ()  => {
+    var isTwist = await contractSL.isTwist.call();
+    assert.equal(false, isTwist);
+    // console.log("isTwist", isTwist);
+
     await contractSL.makeTwists();
+    isTwist = await contractSL.isTwist.call();
+    assert.equal(true, isTwist);
+    // console.log("isTwist", isTwist);
 
-var isTwist = await contractSL.isTwist.call();
-assert.equal(true, isTwist);
-// console.log("isTwist", isTwist);
+    var arrayHappyTickets = await contractSL.getHappyTickets(1,0);
+    console.log("arrayHappyTickets", arrayHappyTickets);
+    assert.equal(4, arrayHappyTickets.length);
 
-var countWinnersDistrib = await contractSL.getCountWinnersDistrib();
-// console.log("countWinnersDistrib");
-// console.log(Number(countWinnersDistrib[0]), Number(countWinnersDistrib[1]),
-//     Number(countWinnersDistrib[2]),Number(countWinnersDistrib[3]),Number(countWinnersDistrib[4]));
-assert.equal(1, Number(countWinnersDistrib[0]));
-assert.equal(1, Number(countWinnersDistrib[1]));
-assert.equal(4, Number(countWinnersDistrib[2]));
-assert.equal(11, Number(countWinnersDistrib[3]));
-assert.equal(39, Number(countWinnersDistrib[4]));
 
-var payEachWinnersDistrib = await contractSL.getPayEachWinnersDistrib();
-// console.log("payEachWinnersDistrib");
-// console.log(Number(payEachWinnersDistrib[0]/decimal), Number(payEachWinnersDistrib[1]/decimal),
-//     Number(payEachWinnersDistrib[2]/decimal),Number(payEachWinnersDistrib[3]/decimal),
-//     Number(payEachWinnersDistrib[4]/decimal));
-// 0.2118 0.1179 0.0354 0.0214 0.0106
-// 0.2117 0.1179 0.0353 0.0214 0.0091
-// 0.211 0.117 0.035 0.021 0.007
-assert.equal(0.2012, Number(payEachWinnersDistrib[0]/decimal));
-assert.equal(0.112, Number(payEachWinnersDistrib[1]/decimal));
-assert.equal(0.0336, Number(payEachWinnersDistrib[2]/decimal));
-assert.equal(0.0203, Number(payEachWinnersDistrib[3]/decimal));
-assert.equal(0.01, Number(payEachWinnersDistrib[4]/decimal));
+    while (isTwist) {
+        await contractSL.makeTwists();
+        isTwist = await contractSL.isTwist.call();
+    }
 
+    isTwist = await contractSL.isTwist.call();
+    assert.equal(false, isTwist);
+    // console.log("isTwist", isTwist);
+
+    // await contractSL.sssssss();
 });
-*/
 
-/*
-it('check make twist', async ()  => {
+it('check transfer prize', async ()  => {
+    var administrationWallet = await contractSL.administrationWallet.call();
 
-var administrationWallet = await contractSL.administrationWallet.call();
+    var balanceEth = await contractSL.balanceETH.call();
+    // assert.equal(1.12, Number(balanceEth/decimal));
+    console.log("balanceEth", Number(balanceEth/decimal));
 
-var balanceEth = await contractSL.balanceETH.call();
-assert.equal(1.12, Number(balanceEth/decimal));
-// console.log("balanceEth", Number(balanceEth/decimal));
+    var isTransferPrize = await contractSL.isTransferPrize.call();
+    // assert.equal(false, isTransferPrize);
+    console.log("isTransferPrize", isTransferPrize);
 
-var numberCurrentTwist = await contractSL.numberCurrentTwist.call();
-assert.equal(2, Number(numberCurrentTwist));
-// console.log("numberCurrentTwist", Number(numberCurrentTwist));
+    // var step = 10;
+    // while (step >1) {
+    //     await contractSL.transferPrize();
+    //     isTransferPrize = await contractSL.isTransferPrize.call();
+    //     step--;
+    // }
 
-for (var i=0; i< Number(numberCurrentTwist); i++) {
-    await contractSL.makeTwists();
-}
+    await contractSL.transferPrize();
+    //await contractSL.transferPrize();
 
+    var isTransferPrize = await contractSL.isTransferPrize.call();
+    // assert.equal(false, isTransferPrize);
+    console.log("isTransferPrize after while", isTransferPrize);
 
-isTwist = await contractSL.isTwist.call();
-assert.equal(false, isTwist);
-// console.log("isTwist", isTwist);
-
-balanceEth = await contractSL.balanceETH.call();
-assert.equal(0, Number(balanceEth/decimal));
-// console.log("balanceEth for SL", Number(balanceEth/decimal));
-
-
-
+    balanceEth = await contractSL.balanceETH.call();
+    // assert.equal(0, Number(balanceEth/decimal));
+    console.log("balanceEth for SL", Number(balanceEth/decimal));
 });
-*/
 
 /*
 it('check happy tickets', async ()  => {

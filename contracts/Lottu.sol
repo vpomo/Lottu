@@ -245,6 +245,7 @@ contract TicketsStorage is Accessibility, Parameters {
     event LogMakeDistribution(uint roundLottery, uint roundDistibution);
     event LogHappyTicket(uint round, uint typeLottu, uint[] happyTicket);
     event LogWinnerTicket(uint round, uint typeLottu, uint numberTicket, uint countNumbers);
+//    event LogDefineWinner(uint round, uint typeLottu, uint numberTicket, uint countNumbers);
 
     //    function isWinner(uint round, uint numberTicket) public view returns (bool) {
     //        return tickets[round][numberTicket].winnerRound > 0;
@@ -364,19 +365,32 @@ contract TicketsStorage is Accessibility, Parameters {
         uint amountPrize = 0;
         if (typeLottu < 4) {
             amountPrize = countTickets[round][typeLottu].mul(priceTicket);
+
             prize_1 = percentTicketPrize_1.mmul(amountPrize);
             uint countWinner_1 = winTickets[round][typeLottu][typeLottu.add(4)].length;
-            prize_1 = roundEth(prize_1.div(countWinner_1), 4);
+            if (countWinner_1 > 0) {
+                prize_1 = roundEth(prize_1.div(countWinner_1), 4);
+            } else {
+                prize_1 = 0;
+            }
             winNumberTickets_1 = winTickets[round][typeLottu][typeLottu.add(4)];
 
             prize_2 = percentTicketPrize_2.mmul(amountPrize);
             uint countWinner_2 = winTickets[round][typeLottu][typeLottu.add(3)].length;
-            prize_2 = roundEth(prize_1.div(countWinner_2), 4);
+            if (countWinner_2 > 0) {
+                prize_2 = roundEth(prize_2.div(countWinner_2), 4);
+            } else {
+                prize_2 = 0;
+            }
             winNumberTickets_2 = winTickets[round][typeLottu][typeLottu.add(3)];
 
             prize_3 = percentTicketPrize_3.mmul(amountPrize);
             uint countWinner_3 = winTickets[round][typeLottu][typeLottu.add(2)].length;
-            prize_3 = roundEth(prize_1.div(countWinner_3), 4);
+            if (countWinner_3 > 0) {
+                prize_3 = roundEth(prize_3.div(countWinner_3), 4);
+            } else {
+                prize_3 = 0;
+            }
             winNumberTickets_3 = winTickets[round][typeLottu][typeLottu.add(2)];
         } else {
             amountPrize = countTickets[round][typeLottu].mul(priceTicketTurbo);
@@ -384,7 +398,11 @@ contract TicketsStorage is Accessibility, Parameters {
             uint countWinner_1 = winTickets[round][typeLottu][typeLottu].length;
             uint countWinner_2 = winTickets[round][typeLottu][typeLottu.sub(1)].length;
 
-            prize_1 = roundEth(prize_1.div(countWinner_1.add(countWinner_2)), 4);
+            if (countWinner_1.add(countWinner_2) > 0) {
+                prize_1 = roundEth(prize_1.div(countWinner_1.add(countWinner_2)), 4);
+            } else {
+                prize_1 = 0;
+            }
             winNumberTickets_1 = winTickets[round][typeLottu][typeLottu];
             prize_2 = prize_1;
             winNumberTickets_2 = winTickets[round][typeLottu][typeLottu.sub(1)];
@@ -511,7 +529,7 @@ contract Lottu is Accessibility, Parameters {
     event SendToAdministrationWallet(uint balanceContract);
     event Play(uint currentRound, uint numberCurrentTwist);
     event LogMsgData(bytes msgData);
-    event LogTesting(uint[] data);
+    //event LogTesting(uint[] data);
 
     modifier balanceChanged {
         _;
@@ -569,7 +587,6 @@ contract Lottu is Accessibility, Parameters {
         (uint typeLottu, uint repeat, uint[] memory numbers) = parseMsgData(msgData);
         require(repeat < 20, "Maximum number of draws exceeded");
 
-        emit LogTesting(numbers);
         uint amountEth = m_tickets.calcCostTicket(typeLottu, repeat);
         require(investment >= amountEth, "Investment must be greater than the cost of tickets");
 
@@ -580,9 +597,9 @@ contract Lottu is Accessibility, Parameters {
         for (uint i = 0; i < repeat.add(1); i++) {
             m_tickets.newTicket(currentRound.add(i), _addressPlayer, numbers, typeLottu);
             emit LogNewTicket(_addressPlayer, now, currentRound.add(i), numbers);
+            totalTicketBuyed++;
         }
 
-        totalTicketBuyed++;
 
         if (!notUnigue[_addressPlayer]) {
             notUnigue[_addressPlayer] = true;
@@ -597,43 +614,6 @@ contract Lottu is Accessibility, Parameters {
         numbers = new uint [](msgData.length - 2);
         for (uint i = 2; i < msgData.length; i++) {
             numbers[i - 2] = msgData[i];
-        }
-    }
-
-    function getDigitFromByte(byte input) private pure returns (uint digit) {
-        byte val = input & 0x0f;
-        if (val == 0x00) {
-            digit = 0;
-        } else if (val == 0x01) {
-            digit = 1;
-        } else if (val == 0x02) {
-            digit = 2;
-        } else if (val == 0x03) {
-            digit = 3;
-        } else if (val == 0x04) {
-            digit = 4;
-        } else if (val == 0x05) {
-            digit = 5;
-        } else if (val == 0x06) {
-            digit = 6;
-        } else if (val == 0x07) {
-            digit = 7;
-        } else if (val == 0x08) {
-            digit = 8;
-        } else if (val == 0x09) {
-            digit = 9;
-        } else if (val == 0x0a) {
-            digit = 10;
-        } else if (val == 0x0b) {
-            digit = 11;
-        } else if (val == 0x0c) {
-            digit = 12;
-        } else if (val == 0x0d) {
-            digit = 13;
-        } else if (val == 0x0e) {
-            digit = 14;
-        } else if (val == 0x0f) {
-            digit = 15;
         }
     }
 
@@ -673,14 +653,14 @@ contract Lottu is Accessibility, Parameters {
     }
 
     function makeTransferPrizeByTypeLottu(uint typeLottu) internal returns (bool) {
-    (
-    uint prize_1,
-    uint prize_2,
-    uint prize_3,
-    uint[] memory winNumberTickets_1,
-    uint[] memory winNumberTickets_2,
-    uint[] memory winNumberTickets_3
-    ) = m_tickets.calcPrizeWinner(currentRound, typeLottu);
+        (
+        uint prize_1,
+        uint prize_2,
+        uint prize_3,
+        uint[] memory winNumberTickets_1,
+        uint[] memory winNumberTickets_2,
+        uint[] memory winNumberTickets_3
+        ) = m_tickets.calcPrizeWinner(currentRound, typeLottu);
         if (typeLottu < 4) {
             transferPrizeByTypeWinner(prize_1, winNumberTickets_1, typeLottu);
             transferPrizeByTypeWinner(prize_2, winNumberTickets_2, typeLottu);
@@ -693,12 +673,14 @@ contract Lottu is Accessibility, Parameters {
 
     function transferPrizeByTypeWinner(uint prize, uint[] memory winNumberTickets, uint typeLottu) internal returns (bool) {
         if (address(this).balance > prize.mul(winNumberTickets.length)) {
-            for (uint i=0; i<winNumberTickets.length; i++) {
-                (address payable wallet,,) = m_tickets.ticketInfo(currentRound, typeLottu, winNumberTickets[i]);
-                countTransfer++;
-                wallet.transfer(prize);
+            if (winNumberTickets.length > 0 && prize > 0) {
+                for (uint i=0; i<winNumberTickets.length; i++) {
+                    (address payable wallet,,) = m_tickets.ticketInfo(currentRound, typeLottu, winNumberTickets[i]);
+                    countTransfer++;
+                    wallet.transfer(prize);
+                }
+                return true;
             }
-            return true;
         } else {
             return false;
         }
@@ -754,10 +736,46 @@ contract Lottu is Accessibility, Parameters {
         uint amount = address(this).balance;
 
         if (amount > 0) {
-            if (administrationWallet.send(amount)) {
-                emit SendToAdministrationWallet(amount);
-            }
+//            if (administrationWallet.send(amount)) { // for test's
+//                emit SendToAdministrationWallet(amount);
+//            }
         }
     }
 
+    function getDigitFromByte(byte input) private pure returns (uint digit) {
+        byte val = input & 0x0f;
+        if (val == 0x00) {
+            digit = 0;
+        } else if (val == 0x01) {
+            digit = 1;
+        } else if (val == 0x02) {
+            digit = 2;
+        } else if (val == 0x03) {
+            digit = 3;
+        } else if (val == 0x04) {
+            digit = 4;
+        } else if (val == 0x05) {
+            digit = 5;
+        } else if (val == 0x06) {
+            digit = 6;
+        } else if (val == 0x07) {
+            digit = 7;
+        } else if (val == 0x08) {
+            digit = 8;
+        } else if (val == 0x09) {
+            digit = 9;
+        } else if (val == 0x0a) {
+            digit = 10;
+        } else if (val == 0x0b) {
+            digit = 11;
+        } else if (val == 0x0c) {
+            digit = 12;
+        } else if (val == 0x0d) {
+            digit = 13;
+        } else if (val == 0x0e) {
+            digit = 14;
+        } else if (val == 0x0f) {
+            digit = 15;
+        }
+    }
 }
