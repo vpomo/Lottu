@@ -1,26 +1,5 @@
 pragma solidity >0.4.99 <0.6.0;
 
-contract Parameters {
-
-    uint public constant PRICE_OF_TOKEN = 0.003 ether;
-    uint public constant MAX_TOKENS_BUY = 80;
-    uint public constant MIN_TICKETS_BUY_FOR_ROUND = 80;
-
-    uint public maxNumberStepCircle = 40;
-
-    uint public currentRound;
-    uint public totalEthRaised;
-    uint public totalTicketBuyed;
-
-    uint public uniquePlayer;
-
-    uint public numberCurrentTwist;
-
-    bool public isDemo;
-    uint public simulateDate;
-
-}
-
 library Zero {
     function requireNotZero(address addr) internal pure {
         require(addr != address(0), "require not zero address");
@@ -195,7 +174,7 @@ contract Accessibility {
 }
 
 
-contract TicketsStorage is Accessibility, Parameters {
+contract TicketsStorage is Accessibility {
     using SafeMath for uint;
     using Percent for Percent.percent;
 
@@ -255,9 +234,13 @@ contract TicketsStorage is Accessibility, Parameters {
         return balancePlayer[round][wallet];
     }
 
-    //    function getBalanceWinner(uint round, address wallet) public view returns (uint) {
-    //        return balanceWinner[round][wallet];
-    //    }
+    function getBalanceWinner(uint round, address wallet) public view returns (uint) {
+        return balanceWinner[round][wallet];
+    }
+
+    function addBalanceWinner(uint round, address wallet, uint prize) public returns (uint) {
+        balanceWinner[round][wallet] = balanceWinner[round][wallet].add(prize);
+    }
 
     function ticketInfo(uint round, uint typeLottu, uint numberTicket) public view returns
     (address payable wallet, uint[] memory drawNumbers, uint typeL) {
@@ -510,14 +493,13 @@ contract TicketsStorage is Accessibility, Parameters {
 
 }
 
-contract Lottu is Accessibility, Parameters {
+contract Lottu is Accessibility {
     using SafeMath for uint;
 
     using Address for *;
     using Zero for *;
 
     TicketsStorage private m_tickets;
-    Parameters private m_parameters;
     mapping(address => bool) private notUnigue;
 
     address payable public administrationWallet;
@@ -528,6 +510,17 @@ contract Lottu is Accessibility, Parameters {
     bool public isTwist;
     bool public isTransferPrize;
 
+    uint public constant PRICE_OF_TOKEN = 0.003 ether;
+
+    uint public currentRound;
+    uint public totalEthRaised;
+    uint public totalTicketBuyed;
+
+    uint public uniquePlayer;
+
+    bool public isDemo;
+    uint public simulateDate;
+
     // more events for easy read from blockchain
     event LogNewTicket(address indexed addr, uint when, uint round, uint[] numbers);
     event LogBalanceChanged(uint when, uint balance);
@@ -536,9 +529,10 @@ contract Lottu is Accessibility, Parameters {
     event LogWinnerDefine(uint roundLottery, uint typeWinner, uint step);
     event ChangeAddressWallet(address indexed owner, address indexed newAddress, address indexed oldAddress);
     event SendToAdministrationWallet(uint balanceContract);
-    event Play(uint currentRound, uint numberCurrentTwist);
     event LogMsgData(bytes msgData);
     event TransferPrizeToWallet(address indexed wallet, uint round, uint typeLottu, uint prize);
+    event MakeTransfer(uint round, uint typeLottu, uint prize_1, uint prize_2, uint prize_3,
+        uint[] winTickets_1, uint[] winTickets_2, uint[] winTickets_3);
     event LogTesting(string data);
 
     modifier balanceChanged {
@@ -555,7 +549,6 @@ contract Lottu is Accessibility, Parameters {
         require(_administrationWallet != address(0));
         administrationWallet = _administrationWallet;
         m_tickets = new TicketsStorage();
-        m_parameters = new Parameters();
         currentRound = 1;
         m_tickets.clearRound();
     }
@@ -598,6 +591,7 @@ contract Lottu is Accessibility, Parameters {
     function buyTicket(address payable _addressPlayer, uint[] memory msgData) public payable notFromContract balanceChanged {
         uint investment = msg.value;
         require(!isTwist, "Ticket purchase is prohibited during the twist");
+        require(!isTransferPrize, "Ticket purchase is prohibited during the transfer prize");
         (uint typeLottu, uint repeat, uint[] memory numbers) = parseMsgData(msgData);
         require(repeat < 20, "Maximum number of draws exceeded");
 
@@ -639,10 +633,7 @@ contract Lottu is Accessibility, Parameters {
         } else {
             if (m_tickets.defineWinner(currentRound)) {
                 isTwist = false;
-                currentRound++;
-                m_tickets.clearRound();
                 isTransferPrize = true;
-                sendToAdministration();
                 transferTypeLottu = 0;
                 countTransfer = 0;
             }
@@ -660,14 +651,16 @@ contract Lottu is Accessibility, Parameters {
                 }
             }
             if (transferTypeLottu > 7) {
+                sendToAdministration();
+                currentRound++;
                 isTransferPrize = false;
+                m_tickets.clearRound();
                 return true;
             }
         }
     }
 
     function makeTransferPrizeByTypeLottu(uint typeLottu) internal returns (bool) {
-        emit LogTesting("makeTransferPrizeByTypeLottu");
         (
         uint prize_1,
         uint prize_2,
@@ -676,6 +669,7 @@ contract Lottu is Accessibility, Parameters {
         uint[] memory winNumberTickets_2,
         uint[] memory winNumberTickets_3
         ) = m_tickets.calcPrizeWinner(currentRound, typeLottu);
+        emit MakeTransfer(currentRound, typeLottu, prize_1, prize_2, prize_3, winNumberTickets_1,  winNumberTickets_2, winNumberTickets_3);
         if (typeLottu < 4) {
             transferPrizeByTypeWinner(prize_1, winNumberTickets_1, typeLottu);
             transferPrizeByTypeWinner(prize_2, winNumberTickets_2, typeLottu);
@@ -687,13 +681,12 @@ contract Lottu is Accessibility, Parameters {
     }
 
     function transferPrizeByTypeWinner(uint prize, uint[] memory winNumberTickets, uint typeLottu) internal returns (bool) {
-        if (prize > 0) {
-            emit LogTesting("transferPrizeByTypeWinner");
+        if (prize > 0 && winNumberTickets.length > 0) {
             if (address(this).balance > prize.mul(winNumberTickets.length)) {
-                emit LogTesting("Transfer !!!!!!!!!!!!!!!!");
                 for (uint i=0; i<winNumberTickets.length; i++) {
                     (address payable wallet,,) = m_tickets.ticketInfo(currentRound, typeLottu, winNumberTickets[i]);
                     countTransfer++;
+                    addBalanceWinner(currentRound, wallet, prize);
                     wallet.transfer(prize);
                     emit TransferPrizeToWallet(wallet, currentRound, typeLottu, prize);
                 }
@@ -704,18 +697,17 @@ contract Lottu is Accessibility, Parameters {
         }
     }
 
-    function setMaxNumberStepCircle(uint256 _number) external onlyOwner {
-        require(_number > 0);
-        maxNumberStepCircle = _number;
-    }
-
     function getBalancePlayer(uint round, address wallet) external view returns (uint) {
         return m_tickets.getBalancePlayer(round, wallet);
     }
 
-    //    function getBalanceWinner(uint round, address wallet) external view returns (uint) {
-    //        return m_tickets.getBalanceWinner(round, wallet);
-    //    }
+    function getBalanceWinner(uint round, address wallet) external view returns (uint) {
+        return m_tickets.getBalanceWinner(round, wallet);
+    }
+
+    function addBalanceWinner(uint round, address wallet, uint prize) internal returns (uint) {
+        return m_tickets.addBalanceWinner(round, wallet, prize);
+    }
 
     function getCurrentDate() public view returns (uint) {
         if (isDemo) {

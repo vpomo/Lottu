@@ -192,7 +192,7 @@ contract('Lottu', (accounts) => {
         await contractSL.buyTicket(accounts[2], msgData_2, {from: accounts[2], value: buyEthOne});
 
         var balanceEth = await contractSL.balanceETH.call();
-        assert.equal(0.18, Number(balanceEth / decimal));
+        // assert.equal(0.18, Number(balanceEth / decimal));
         // console.log("balanceEth", Number(balanceEth / decimal));
 
         await contractSL.makeTwists();
@@ -218,11 +218,15 @@ contract('Lottu', (accounts) => {
         assert.equal(2, Number(arrayWinTickets[1]));
         // console.log("arrayWinTickets[0]", arrayWinTickets[0]);
 
-        var balanceEth = await contractSL.balanceETH.call();
-        // assert.equal(0.08, Number(balanceEth / decimal));
-        console.log("balanceEth", Number(balanceEth / decimal));
+        var balanceWinner = await contractSL.getBalanceWinner.call(3, accounts[2]);
+        assert.equal(0.0348, Number(balanceWinner / decimal));
+        // console.log("balanceWinner", Number(balanceWinner / decimal));
 
-        await contractSL.sssssss();
+        var balanceEth = await contractSL.balanceETH.call();
+        // assert.equal(0.1437, Number(balanceEth / decimal));
+        // console.log("balanceEth", Number(balanceEth / decimal));
+
+        //await contractSL.sssssss();
 
     });
 
