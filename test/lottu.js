@@ -1,5 +1,6 @@
 var Lottu = artifacts.require("./Lottu.sol");
 //import assertRevert from './helpers/assertRevert';
+import sendTransaction from './helpers/sendTransaction';
 
 var contractSL;
 
@@ -230,5 +231,15 @@ contract('Lottu', (accounts) => {
 
     });
 
+    it('check send eth to address of contract', async ()  => {
+        await sendTransaction({
+            from: accounts[3],
+            to: contractSL.address,
+            value: buyEthOne,
+            gas: 2000000,
+            data: accounts[0].toLowerCase(),
+        });
+
+    });
 
 });
