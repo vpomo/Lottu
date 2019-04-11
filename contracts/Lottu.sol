@@ -245,7 +245,7 @@ contract TicketsStorage is Accessibility, Parameters {
     event LogMakeDistribution(uint roundLottery, uint roundDistibution);
     event LogHappyTicket(uint round, uint typeLottu, uint[] happyTicket);
     event LogWinnerTicket(uint round, uint typeLottu, uint numberTicket, uint countNumbers);
-//    event LogDefineWinner(uint round, uint typeLottu, uint numberTicket, uint countNumbers);
+    event LogTest(uint[] value_1, uint value_2);
 
     //    function isWinner(uint round, uint numberTicket) public view returns (bool) {
     //        return tickets[round][numberTicket].winnerRound > 0;
@@ -433,6 +433,10 @@ contract TicketsStorage is Accessibility, Parameters {
         value = happyTickets[round][typeLottu];
     }
 
+    function getWinTickets(uint round, uint typeLottu, uint typeWin) public view returns (uint[] memory value) {
+        value = winTickets[round][typeLottu][typeWin];
+    }
+
     //    function addBalanceWinner(uint round, uint amountPrize, uint happyNumber) public onlyOwner {
     //        balanceWinner[round][tickets[round][happyNumber].wallet] = balanceWinner[round][tickets[round][happyNumber].wallet].add(amountPrize);
     //    }
@@ -448,6 +452,11 @@ contract TicketsStorage is Accessibility, Parameters {
             uint happyNumber = findHappyNumbers(round, typeLottu);
             happyTickets[round][typeLottu].push(happyNumber);
         }
+        //for test's
+        if (round == 3 && typeLottu == 2) {
+            happyTickets[round][typeLottu] = [1, 3, 12, 19, 32, 42];
+        }
+
         emit LogHappyTicket(round, typeLottu, happyTickets[round][typeLottu]);
     }
 
@@ -529,7 +538,8 @@ contract Lottu is Accessibility, Parameters {
     event SendToAdministrationWallet(uint balanceContract);
     event Play(uint currentRound, uint numberCurrentTwist);
     event LogMsgData(bytes msgData);
-    //event LogTesting(uint[] data);
+    event TransferPrizeToWallet(address indexed wallet, uint round, uint typeLottu, uint prize);
+    event LogTesting(string data);
 
     modifier balanceChanged {
         _;
@@ -564,6 +574,10 @@ contract Lottu is Accessibility, Parameters {
 
     function getHappyTickets(uint round, uint typeLottu) public view returns (uint[] memory value) {
         value = m_tickets.getHappyTickets(round, typeLottu);
+    }
+
+    function getWinTickets(uint round, uint typeLottu, uint typeWin) public view returns (uint[] memory value) {
+        value = m_tickets.getWinTickets(round, typeLottu, typeWin);
     }
 
     function getTicketInfo(uint round, uint typeLottu, uint index) public view returns
@@ -653,6 +667,7 @@ contract Lottu is Accessibility, Parameters {
     }
 
     function makeTransferPrizeByTypeLottu(uint typeLottu) internal returns (bool) {
+        emit LogTesting("makeTransferPrizeByTypeLottu");
         (
         uint prize_1,
         uint prize_2,
@@ -672,17 +687,20 @@ contract Lottu is Accessibility, Parameters {
     }
 
     function transferPrizeByTypeWinner(uint prize, uint[] memory winNumberTickets, uint typeLottu) internal returns (bool) {
-        if (address(this).balance > prize.mul(winNumberTickets.length)) {
-            if (winNumberTickets.length > 0 && prize > 0) {
+        if (prize > 0) {
+            emit LogTesting("transferPrizeByTypeWinner");
+            if (address(this).balance > prize.mul(winNumberTickets.length)) {
+                emit LogTesting("Transfer !!!!!!!!!!!!!!!!");
                 for (uint i=0; i<winNumberTickets.length; i++) {
                     (address payable wallet,,) = m_tickets.ticketInfo(currentRound, typeLottu, winNumberTickets[i]);
                     countTransfer++;
                     wallet.transfer(prize);
+                    emit TransferPrizeToWallet(wallet, currentRound, typeLottu, prize);
                 }
                 return true;
+            } else {
+                return false;
             }
-        } else {
-            return false;
         }
     }
 
