@@ -482,7 +482,7 @@ contract TicketsStorage is Accessibility {
             ));
     }
 
-    function roundEth(uint numerator, uint precision) internal pure returns (uint round) {
+    function roundEth(uint numerator, uint precision) public pure returns (uint round) {
         if (precision > 0 && precision < 18) {
             uint256 _numerator = numerator / 10 ** (18 - precision - 1);
             _numerator = (_numerator) / 10;
@@ -502,7 +502,13 @@ contract Lottu is Accessibility {
     TicketsStorage private m_tickets;
     mapping(address => bool) private notUnigue;
 
-    address payable public administrationWallet;
+    address payable public advertisingFundWallet;
+    address payable public commissionsWallet;
+    address payable public technicalWallet;
+    address payable public supportWallet;
+    address payable public maintenanceWallet;
+
+    address payable public adminWallet;
 
     uint public transferTypeLottu;
     uint public countTransfer;
@@ -528,12 +534,13 @@ contract Lottu is Accessibility {
     event LogRefundEth(address indexed player, uint value);
     event LogWinnerDefine(uint roundLottery, uint typeWinner, uint step);
     event ChangeAddressWallet(address indexed owner, address indexed newAddress, address indexed oldAddress);
-    event SendToAdministrationWallet(uint balanceContract);
-    event LogMsgData(bytes msgData);
+    event SendToAdministrationWallet(address indexed wallet, uint amount);
+    event LogMsgData(bytes msgData, uint length);
     event TransferPrizeToWallet(address indexed wallet, uint round, uint typeLottu, uint prize);
     event MakeTransfer(uint round, uint typeLottu, uint prize_1, uint prize_2, uint prize_3,
         uint[] winTickets_1, uint[] winTickets_2, uint[] winTickets_3);
     event LogTesting(string data);
+    event Paid(address indexed _from, uint _value);
 
     modifier balanceChanged {
         _;
@@ -545,23 +552,36 @@ contract Lottu is Accessibility {
         _;
     }
 
-    constructor(address payable _administrationWallet) public {
-        require(_administrationWallet != address(0));
-        administrationWallet = _administrationWallet;
+    modifier onlyAdmin() {
+        require(msg.sender == adminWallet, "access denied");
+        _;
+    }
+
+    constructor() public {
         m_tickets = new TicketsStorage();
+        adminWallet = msg.sender;
         currentRound = 1;
         m_tickets.clearRound();
     }
 
     function() external payable {
-        if (msg.value >= PRICE_OF_TOKEN) {
-            emit LogMsgData(msg.data);
-            //uint[] storage arrMsgData = [0, 2,12,24,32,36];
-            //buyTicket(msg.sender, arrMsgData);
-        } else if (msg.value.isZero()) {
-            makeTwists();
+        if (msg.value >= PRICE_OF_TOKEN && msg.data.length > 6) {
+            emit Paid(msg.sender, msg.value);
+            emit LogMsgData(msg.data, msg.data.length);
+            buyTicket(msg.sender, convertMsgData(msg.data));
         } else {
             refundEth(msg.sender, msg.value);
+        }
+    }
+
+//    function convertMsgData(bytes memory data) internal pure returns (uint[] memory numbers) { //for test's
+    function convertMsgData(bytes memory data) public pure returns (uint[] memory numbers) { //for test's
+        if (data.length > 0) {
+            uint[] memory newNumbers = new uint [](data.length);
+            for (uint i = 0; i < newNumbers.length; i++) {
+                newNumbers[i] = bytes1ToUInt(data[i]);
+            }
+            numbers = newNumbers;
         }
     }
 
@@ -625,7 +645,7 @@ contract Lottu is Accessibility {
         }
     }
 
-    function makeTwists() public notFromContract {
+    function makeTwists() public notFromContract onlyAdmin {
         if (!isTwist) {
             m_tickets.makeAllHappyNumber(currentRound);
             m_tickets.defineCountTwist(currentRound);
@@ -636,11 +656,12 @@ contract Lottu is Accessibility {
                 isTransferPrize = true;
                 transferTypeLottu = 0;
                 countTransfer = 0;
+                //sendToAdministration();
             }
         }
     }
 
-    function transferPrize() public returns (bool) {
+    function transferPrize() public notFromContract onlyAdmin returns (bool) {
         if (isTransferPrize) {
             while (transferTypeLottu < 8) {
                 makeTransferPrizeByTypeLottu(transferTypeLottu);
@@ -651,7 +672,6 @@ contract Lottu is Accessibility {
                 }
             }
             if (transferTypeLottu > 7) {
-                sendToAdministration();
                 currentRound++;
                 isTransferPrize = false;
                 m_tickets.clearRound();
@@ -734,58 +754,64 @@ contract Lottu is Accessibility {
         countTickets = m_tickets.getCountTickets(round, typeLottu);
     }
 
-    function setAdministrationWallet(address payable _newWallet) external onlyOwner {
-        require(_newWallet != address(0));
-        address payable _oldWallet = administrationWallet;
-        administrationWallet = _newWallet;
-        emit ChangeAddressWallet(msg.sender, _newWallet, _oldWallet);
+    function findHappyNumbers(uint round, uint typeLottu) public returns (uint numb) {
+        numb = m_tickets.findHappyNumbers(round, typeLottu);
+    }
+
+    function setAdministrationWallet(address payable newWallet, uint index) external onlyOwner {
+        require(newWallet != address(0) && index < 5);
+        address payable oldWallet = address(0);
+        if (index == 0) {
+            oldWallet = advertisingFundWallet;
+            advertisingFundWallet = newWallet;
+        }
+        if (index == 1) {
+            oldWallet = commissionsWallet;
+            commissionsWallet = newWallet;
+        }
+        if (index == 2) {
+            oldWallet = technicalWallet;
+            technicalWallet = newWallet;
+        }
+        if (index == 3) {
+            oldWallet = supportWallet;
+            supportWallet = newWallet;
+        }
+        if (index == 4) {
+            oldWallet = maintenanceWallet;
+            maintenanceWallet = newWallet;
+        }
+        if (index == 5) {
+            oldWallet = adminWallet;
+            adminWallet = newWallet;
+        }
+        emit ChangeAddressWallet(msg.sender, newWallet, oldWallet);
     }
 
     function sendToAdministration() internal {
-        require(administrationWallet != address(0), "wallet address is not 0");
-        uint amount = address(this).balance;
+        require(advertisingFundWallet != address(0), "advertising Fund wallet address is 0х0");
+        require(commissionsWallet != address(0), "commissions wallet address is 0х0");
+        require(technicalWallet != address(0), "technical wallet address is 0х0");
+        require(supportWallet != address(0), "support wallet address is 0х0");
+        require(maintenanceWallet != address(0), "maintenance wallet address is 0х0");
 
+        uint amount = m_tickets.roundEth(address(this).balance.div(10), 4);
         if (amount > 0) {
-//            if (administrationWallet.send(amount)) { // for test's
-//                emit SendToAdministrationWallet(amount);
-//            }
+            advertisingFundWallet.transfer(amount);
+            emit SendToAdministrationWallet(advertisingFundWallet, amount);
+            commissionsWallet.transfer(amount);
+            emit SendToAdministrationWallet(commissionsWallet, amount);
+            technicalWallet.transfer(amount);
+            emit SendToAdministrationWallet(technicalWallet, amount);
+            supportWallet.transfer(amount);
+            emit SendToAdministrationWallet(supportWallet, amount);
+            maintenanceWallet.transfer(amount);
+            emit SendToAdministrationWallet(maintenanceWallet, amount);
         }
     }
 
-    function getDigitFromByte(byte input) private pure returns (uint digit) {
-        byte val = input & 0x0f;
-        if (val == 0x00) {
-            digit = 0;
-        } else if (val == 0x01) {
-            digit = 1;
-        } else if (val == 0x02) {
-            digit = 2;
-        } else if (val == 0x03) {
-            digit = 3;
-        } else if (val == 0x04) {
-            digit = 4;
-        } else if (val == 0x05) {
-            digit = 5;
-        } else if (val == 0x06) {
-            digit = 6;
-        } else if (val == 0x07) {
-            digit = 7;
-        } else if (val == 0x08) {
-            digit = 8;
-        } else if (val == 0x09) {
-            digit = 9;
-        } else if (val == 0x0a) {
-            digit = 10;
-        } else if (val == 0x0b) {
-            digit = 11;
-        } else if (val == 0x0c) {
-            digit = 12;
-        } else if (val == 0x0d) {
-            digit = 13;
-        } else if (val == 0x0e) {
-            digit = 14;
-        } else if (val == 0x0f) {
-            digit = 15;
-        }
+    function bytes1ToUInt(bytes1 b) public pure returns (uint number){
+        number = (uint(uint8(b) >> 4) & 0xF) * 10 + uint(uint8(b) & 0xF);
     }
+
 }

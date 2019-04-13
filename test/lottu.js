@@ -1,6 +1,6 @@
 var Lottu = artifacts.require("./Lottu.sol");
 //import assertRevert from './helpers/assertRevert';
-import sendTransaction from './helpers/sendTransaction';
+//import sendTransaction from './helpers/sendTransaction';
 
 var contractSL;
 
@@ -67,27 +67,6 @@ contract('Lottu', (accounts) => {
 
     });
 
-    /*
-    it('check date twist', async ()  => {
-        await contractSL.buyTicket(accounts[3], {from:accounts[3], value: buyEthThree});
-    await contractSL.buyTicket(accounts[4], {from:accounts[4], value: buyEthThree});
-
-    var totalTickets = await contractSL.totalTicketBuyed.call();
-    assert.equal(112, Number(totalTickets));
-    //console.log("totalTickets", Number(totalTickets));
-
-    await contractSL.setSimulateDate(1541293500); //Sun, 04 Nov 2018 01:05:00 GMT
-    var isSunday = await contractSL.isSunday(1541293500);
-    assert.equal(true, isSunday);
-    //console.log("isSunday", isSunday);
-
-    // var testDemo = await contractSL.testDemo(1);
-    // console.log("testDemo", Number(testDemo));
-    // testDemo = await contractSL.testDemo(2);
-    // console.log("testDemo", Number(testDemo));
-    });
-    */
-
     it('check make distribution', async () => {
         var isTwist = await contractSL.isTwist.call();
         assert.equal(false, isTwist);
@@ -116,8 +95,6 @@ contract('Lottu', (accounts) => {
     });
 
     it('check transfer prize', async () => {
-        var administrationWallet = await contractSL.administrationWallet.call();
-
         var balanceEth = await contractSL.balanceETH.call();
         assert.equal(0.08, Number(balanceEth / decimal));
         //console.log("balanceEth", Number(balanceEth / decimal));
@@ -189,7 +166,7 @@ contract('Lottu', (accounts) => {
         assert.equal(false, isTransferPrize);
     });
 
-    it('check happy tickets', async ()  => {
+    it('check define happy tickets', async ()  => {
         await contractSL.buyTicket(accounts[2], msgData_2, {from: accounts[2], value: buyEthOne});
 
         var balanceEth = await contractSL.balanceETH.call();
@@ -231,15 +208,18 @@ contract('Lottu', (accounts) => {
 
     });
 
-    it('check send eth to address of contract', async ()  => {
-        await sendTransaction({
-            from: accounts[3],
-            to: contractSL.address,
-            value: buyEthOne,
-            gas: 2000000,
-            data: accounts[0].toLowerCase(),
-        });
+    it('check send msgData to address of contract', async ()  => {
+        var dataMsg = "0x000102052919";
+        await contractSL.sendTransaction({from:accounts[0], value:buyEthOne, data: dataMsg});
 
+        var checkMsgData = await contractSL.convertMsgData.call(dataMsg);
+        // console.log(checkMsgData);
+        assert.equal(19, Number(checkMsgData[5]));
+        // for (var i=0; i<20;i++) {
+        //     await contractSL.findHappyNumbers(1, 0);
+        //     var number = await contractSL.findHappyNumbers.call(1, 0);
+        //     console.log("number", Number(number));
+        // }
     });
 
 });
