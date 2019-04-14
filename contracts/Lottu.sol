@@ -296,7 +296,7 @@ contract TicketsStorage is Accessibility {
         } else {
             cost = priceTicket;
         }
-        cost = cost.mul(repeat);
+        cost = cost.add(repeat.mul(cost));
     }
 
     function clearRound() public {
@@ -507,8 +507,6 @@ contract Lottu is Accessibility {
     bool public isTwist;
     bool public isTransferPrize;
 
-    uint public constant PRICE_OF_TOKEN = 0.003 ether;
-
     uint public currentRound;
     uint public totalEthRaised;
     uint public totalTicketBuyed;
@@ -523,7 +521,7 @@ contract Lottu is Accessibility {
     event LogWinnerDefine(uint roundLottery, uint typeWinner, uint step);
     event ChangeAddressWallet(address indexed owner, address indexed oldAddress, address indexed newAddress);
     event SendToAdministrationWallet(address indexed wallet, uint amount);
-    event LogMsgData(bytes msgData, uint length);
+    event LogMsgData(string description, bytes msgData);
     event TransferPrizeToWallet(address indexed wallet, uint round, uint typeLottu, uint prize);
     event MakeTransfer(uint round, uint typeLottu, uint prize_1, uint prize_2, uint prize_3,
         uint[] winTickets_1, uint[] winTickets_2, uint[] winTickets_3);
@@ -552,9 +550,9 @@ contract Lottu is Accessibility {
     }
 
     function() external payable {
-        if (msg.value >= PRICE_OF_TOKEN && msg.data.length > 6) {
+        if (msg.value >= m_tickets.calcCostTicket(4, 0) && msg.data.length > 5) {
             emit Paid(msg.sender, msg.value);
-            emit LogMsgData(msg.data, msg.data.length);
+            emit LogMsgData("msg data", msg.data);
             buyTicket(msg.sender, convertMsgData(msg.data));
         } else {
             refundEth(msg.sender, msg.value);
@@ -605,7 +603,7 @@ contract Lottu is Accessibility {
         uint amountEth = m_tickets.calcCostTicket(typeLottu, repeat);
         require(investment >= amountEth, "Investment must be greater than the cost of tickets");
 
-        if (investment > amountEth) {
+        if (investment > amountEth && amountEth > 0) {
             refundEth(msg.sender, investment.sub(amountEth));
         }
 
