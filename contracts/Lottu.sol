@@ -45,7 +45,6 @@ library Address {
  * @dev Math operations with safety checks that revert on error
  */
 library SafeMath {
-
     /**
     * @dev Multiplies two numbers, reverts on overflow.
     */
@@ -225,10 +224,6 @@ contract TicketsStorage is Accessibility {
     event LogHappyTicket(uint round, uint typeLottu, uint[] happyTicket);
     event LogWinnerTicket(uint round, uint typeLottu, uint numberTicket, uint countNumbers);
     event LogTest(uint[] value_1, uint value_2);
-
-    //    function isWinner(uint round, uint numberTicket) public view returns (bool) {
-    //        return tickets[round][numberTicket].winnerRound > 0;
-    //    }
 
     function getBalancePlayer(uint round, address wallet) public view returns (uint) {
         return balancePlayer[round][wallet];
@@ -420,10 +415,6 @@ contract TicketsStorage is Accessibility {
         value = winTickets[round][typeLottu][typeWin];
     }
 
-    //    function addBalanceWinner(uint round, uint amountPrize, uint happyNumber) public onlyOwner {
-    //        balanceWinner[round][tickets[round][happyNumber].wallet] = balanceWinner[round][tickets[round][happyNumber].wallet].add(amountPrize);
-    //    }
-
     function makeAllHappyNumber(uint round) public onlyOwner {
         for (uint i = 0; i < 8; i++) {
             makeHappyNumber(round, i);
@@ -524,22 +515,18 @@ contract Lottu is Accessibility {
 
     uint public uniquePlayer;
 
-    bool public isDemo;
-    uint public simulateDate;
-
     // more events for easy read from blockchain
     event LogNewTicket(address indexed addr, uint when, uint round, uint[] numbers);
     event LogBalanceChanged(uint when, uint balance);
     event LogChangeTime(uint newDate, uint oldDate);
     event LogRefundEth(address indexed player, uint value);
     event LogWinnerDefine(uint roundLottery, uint typeWinner, uint step);
-    event ChangeAddressWallet(address indexed owner, address indexed newAddress, address indexed oldAddress);
+    event ChangeAddressWallet(address indexed owner, address indexed oldAddress, address indexed newAddress);
     event SendToAdministrationWallet(address indexed wallet, uint amount);
     event LogMsgData(bytes msgData, uint length);
     event TransferPrizeToWallet(address indexed wallet, uint round, uint typeLottu, uint prize);
     event MakeTransfer(uint round, uint typeLottu, uint prize_1, uint prize_2, uint prize_3,
         uint[] winTickets_1, uint[] winTickets_2, uint[] winTickets_3);
-    event LogTesting(string data);
     event Paid(address indexed _from, uint _value);
 
     modifier balanceChanged {
@@ -628,7 +615,6 @@ contract Lottu is Accessibility {
             totalTicketBuyed++;
         }
 
-
         if (!notUnigue[_addressPlayer]) {
             notUnigue[_addressPlayer] = true;
             uniquePlayer++;
@@ -656,7 +642,7 @@ contract Lottu is Accessibility {
                 isTransferPrize = true;
                 transferTypeLottu = 0;
                 countTransfer = 0;
-                //sendToAdministration();
+                sendToAdministration();
             }
         }
     }
@@ -730,24 +716,7 @@ contract Lottu is Accessibility {
     }
 
     function getCurrentDate() public view returns (uint) {
-        if (isDemo) {
-            return simulateDate;
-        }
         return now;
-    }
-
-    function setSimulateDate(uint _newDate) external onlyOwner {
-        if (isDemo) {
-            require(_newDate > simulateDate);
-            emit LogChangeTime(_newDate, simulateDate);
-            simulateDate = _newDate;
-        }
-    }
-
-    function setDemo() external onlyOwner {
-        if (uniquePlayer == 0) {
-            isDemo = true;
-        }
     }
 
     function getCountTickets(uint round, uint typeLottu) public view returns (uint countTickets) {
@@ -785,32 +754,28 @@ contract Lottu is Accessibility {
             oldWallet = adminWallet;
             adminWallet = newWallet;
         }
-        emit ChangeAddressWallet(msg.sender, newWallet, oldWallet);
+        emit ChangeAddressWallet(msg.sender, oldWallet, newWallet);
     }
 
     function sendToAdministration() internal {
-        require(advertisingFundWallet != address(0), "advertising Fund wallet address is 0х0");
-        require(commissionsWallet != address(0), "commissions wallet address is 0х0");
-        require(technicalWallet != address(0), "technical wallet address is 0х0");
-        require(supportWallet != address(0), "support wallet address is 0х0");
-        require(maintenanceWallet != address(0), "maintenance wallet address is 0х0");
+        sendToOneWalletAdministration(advertisingFundWallet);
+        sendToOneWalletAdministration(commissionsWallet);
+        sendToOneWalletAdministration(technicalWallet);
+        sendToOneWalletAdministration(supportWallet);
+        sendToOneWalletAdministration(maintenanceWallet);
+    }
 
+    function sendToOneWalletAdministration(address payable _wallet) internal {
         uint amount = m_tickets.roundEth(address(this).balance.div(10), 4);
         if (amount > 0) {
-            advertisingFundWallet.transfer(amount);
-            emit SendToAdministrationWallet(advertisingFundWallet, amount);
-            commissionsWallet.transfer(amount);
-            emit SendToAdministrationWallet(commissionsWallet, amount);
-            technicalWallet.transfer(amount);
-            emit SendToAdministrationWallet(technicalWallet, amount);
-            supportWallet.transfer(amount);
-            emit SendToAdministrationWallet(supportWallet, amount);
-            maintenanceWallet.transfer(amount);
-            emit SendToAdministrationWallet(maintenanceWallet, amount);
+            if (_wallet != address(0)) {
+                _wallet.transfer(amount);
+                emit SendToAdministrationWallet(_wallet, amount);
+            }
         }
     }
 
-    function bytes1ToUInt(bytes1 b) public pure returns (uint number){
+    function bytes1ToUInt(bytes1 b) internal pure returns (uint number){
         number = (uint(uint8(b) >> 4) & 0xF) * 10 + uint(uint8(b) & 0xF);
     }
 

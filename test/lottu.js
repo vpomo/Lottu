@@ -35,9 +35,6 @@ contract('Lottu', (accounts) => {
 
     it('check buy tickets', async () => {
         // msgData = [type, repeat, numbers[]]
-        await contractSL.setDemo({from: accounts[0]});
-        await contractSL.setSimulateDate(1541066480); //Thu, 01 Nov 2018 10:01:20 GMT
-
         await contractSL.buyTicket(accounts[0], msgData_0, {from: accounts[0], value: buyEthOne});
         await contractSL.buyTicket(accounts[1], msgData_1, {from: accounts[1], value: buyEthOne});
         await contractSL.buyTicket(accounts[2], msgData_2, {from: accounts[2], value: buyEthOne});
@@ -121,7 +118,6 @@ contract('Lottu', (accounts) => {
     });
 
     it('check new round & tickets from previous round', async () => {
-        await contractSL.setSimulateDate(1541380200); //Mon, 05 Nov 2018 01:10:00 GMT
         var isTransferPrize = await contractSL.isTransferPrize.call();
         assert.equal(false, isTransferPrize);
         //console.log("isTransferPrize", isTransferPrize);
