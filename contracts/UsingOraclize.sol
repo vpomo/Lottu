@@ -1,7 +1,7 @@
 pragma solidity >= 0.5.0;
 
 contract solcChecker {
-/* INCOMPATIBLE SOLC: import the following instead: "github.com/oraclize/ethereum-api/oraclizeAPI_0.4.sol" */ function f(bytes calldata x) external;
+    /* INCOMPATIBLE SOLC: import the following instead: "github.com/oraclize/ethereum-api/oraclizeAPI_0.4.sol" */ function f(bytes calldata x) external;
 }
 
 contract OraclizeI {
@@ -261,8 +261,8 @@ contract usingOraclize {
     }
 
     function oraclize_setNetwork(uint8 _networkID) internal returns (bool _networkSet) {
-      return oraclize_setNetwork();
-      _networkID; // silence the warning and remain backwards compatible
+        return oraclize_setNetwork();
+        _networkID; // silence the warning and remain backwards compatible
     }
 
     function oraclize_setNetworkName(string memory _network_name) internal {
@@ -314,8 +314,8 @@ contract usingOraclize {
     }
 
     function __callback(bytes32 _myid, string memory _result, bytes memory _proof) public {
-      return;
-      _myid; _result; _proof; // Silence compiler warnings
+        return;
+        _myid; _result; _proof; // Silence compiler warnings
     }
 
     function oraclize_getPrice(string memory _datasource) oraclizeAPI internal returns (uint _queryPrice) {
@@ -353,7 +353,7 @@ contract usingOraclize {
     function oraclize_query(string memory _datasource, string memory _arg, uint _gasLimit) oraclizeAPI internal returns (bytes32 _id) {
         uint price = oraclize.getPrice(_datasource, _gasLimit);
         if (price > 1 ether + tx.gasprice * _gasLimit) {
-           return 0; // Unexpectedly high price
+            return 0; // Unexpectedly high price
         }
         return oraclize.query_withGasLimit.value(price)(0, _datasource, _arg, _gasLimit);
     }
@@ -931,7 +931,7 @@ contract usingOraclize {
         for (uint i = 0; i < bresult.length; i++) {
             if ((uint(uint8(bresult[i])) >= 48) && (uint(uint8(bresult[i])) <= 57)) {
                 if (decimals) {
-                   if (_b == 0) break;
+                    if (_b == 0) break;
                     else _b--;
                 }
                 mint *= 10;
@@ -960,11 +960,11 @@ contract usingOraclize {
         for (uint i = 0; i < bresult.length; i++) {
             if ((uint(uint8(bresult[i])) >= 48) && (uint(uint8(bresult[i])) <= 57)) {
                 if (decimals) {
-                   if (_b == 0) {
-                       break;
-                   } else {
-                       _b--;
-                   }
+                    if (_b == 0) {
+                        break;
+                    } else {
+                        _b--;
+                    }
                 }
                 mint *= 10;
                 mint += uint(uint8(bresult[i])) - 48;
@@ -1031,11 +1031,11 @@ contract usingOraclize {
         bytes32 sessionKeyHash_bytes32 = oraclize_randomDS_getSessionPubKeyHash();
         assembly {
             mstore(unonce, 0x20)
-            /*
-             The following variables can be relaxed.
-             Check the relaxed random contract at https://github.com/oraclize/ethereum-examples
-             for an idea on how to override and replace commit hash variables.
-            */
+        /*
+         The following variables can be relaxed.
+         Check the relaxed random contract at https://github.com/oraclize/ethereum-examples
+         for an idea on how to override and replace commit hash variables.
+        */
             mstore(add(unonce, 0x20), xor(blockhash(sub(number, 1)), xor(coinbase, timestamp)))
             mstore(sessionKeyHash, 0x20)
             mstore(add(sessionKeyHash, 0x20), sessionKeyHash_bytes32)
@@ -1241,18 +1241,18 @@ contract usingOraclize {
         assembly {
             r := mload(add(_sig, 32))
             s := mload(add(_sig, 64))
-            /*
-             Here we are loading the last 32 bytes. We exploit the fact that
-             'mload' will pad with zeroes if we overread.
-             There is no 'mload8' to do this, but that would be nicer.
-            */
+        /*
+         Here we are loading the last 32 bytes. We exploit the fact that
+         'mload' will pad with zeroes if we overread.
+         There is no 'mload8' to do this, but that would be nicer.
+        */
             v := byte(0, mload(add(_sig, 96)))
-            /*
-              Alternative solution:
-              'byte' is not working due to the Solidity parser, so lets
-              use the second best option, 'and'
-              v := and(mload(add(_sig, 65)), 255)
-            */
+        /*
+          Alternative solution:
+          'byte' is not working due to the Solidity parser, so lets
+          use the second best option, 'and'
+          v := and(mload(add(_sig, 65)), 255)
+        */
         }
         /*
          albeit non-transactional signatures are not specified by the YP, one would expect it
@@ -1280,12 +1280,12 @@ contract usingOraclize {
 
 contract GetApiContract is usingOraclize {
 
-    string public ETHUSD;
-    event updatedPrice(string price);
+    string public number_4x20;
+    event UpdateNumber_4x20(string price);
     event newOraclizeQuery(string description);
 
     constructor() public payable {
-        updatePrice();
+        updateNumber_4x20();
     }
 
     function() external payable {
@@ -1293,16 +1293,18 @@ contract GetApiContract is usingOraclize {
 
     function __callback(bytes32 myid, string memory result) public {
         require (msg.sender == oraclize_cbAddress());
-        ETHUSD = result;
-        emit updatedPrice(result);
+        number_4x20 = result;
+        emit UpdateNumber_4x20(result);
     }
 
-    function updatePrice() public payable {
+    function updateNumber_4x20() public payable {
         if (oraclize_getPrice("URL") > address(this).balance) {
             emit newOraclizeQuery("Oraclize query was NOT sent, please add some ETH to cover for the query fee");
         } else {
             emit newOraclizeQuery("Oraclize query was sent, standing by for the answer..");
-            oraclize_query("URL", "json(https://api.coinmarketcap.com/v1/ticker/ethereum/?convert=USD).0.price_usd");
+            oraclize_query("URL", "https://www.random.org/quick-pick/?tickets=1&lottery=4x20.0x0&format=plain");
         }
     }
 }
+//0x7d75c30cfda88737f6f89018160b9ccf18fc0007
+//01-07-09-17
