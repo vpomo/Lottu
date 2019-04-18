@@ -13,14 +13,6 @@ library Zero {
         return !(addr == address(0));
     }
 
-    function isZero(address addr) internal pure returns (bool) {
-        return addr == address(0);
-    }
-
-    function isZero(uint a) internal pure returns (bool) {
-        return a == 0;
-    }
-
     function notZero(uint a) internal pure returns (bool) {
         return a != 0;
     }
@@ -172,10 +164,36 @@ contract Accessibility {
     }
 }
 
+contract IGetApiContract_4 {
+    function getData() external view returns (string memory newHappyNumber, uint actualDate);
+}
+
+contract IGetApiContract_5 {
+    function getData() external view returns (string memory newHappyNumber, uint actualDate);
+}
+
+contract IGetApiContract_6 {
+    function getData() external view returns (string memory newHappyNumber, uint actualDate);
+}
+
+contract IGetApiContract_7 {
+    function getData() external view returns (string memory newHappyNumber, uint actualDate);
+}
+
 
 contract TicketsStorage is Accessibility {
     using SafeMath for uint;
     using Percent for Percent.percent;
+
+    IGetApiContract_4 private getApiContract_4;
+    IGetApiContract_5 private getApiContract_5;
+    IGetApiContract_6 private getApiContract_6;
+    IGetApiContract_7 private getApiContract_7;
+
+    address private addressApiContract_4 = 0x3fef75e824410ef487f71f6777cf43fcab1bb867;
+    address private addressApiContract_5 = 0x0154F317525CEE2E5e93A542116f2A05b665966C;
+    address private addressApiContract_6 = 0x0154F317525CEE2E5e93A542116f2A05b665966C;
+    address private addressApiContract_7 = 0x0154F317525CEE2E5e93A542116f2A05b665966C;
 
     struct Ticket {
         address payable wallet;
@@ -183,7 +201,6 @@ contract TicketsStorage is Accessibility {
         uint typeLottu;
     }
 
-    enum TypeLottu {FOUR, FIVE, SIX, SEVEN, FOUR_TURBO, FIVE_TURBO, SIX_TURBO, SEVEN_TURBO}
     uint[] private range = [20, 36, 45, 60, 20, 36, 45, 60];
     uint[] private countNumberLottu = [4, 5, 6, 7, 4, 5, 6, 7];
     uint[] private countTwist = [0, 0, 0, 0, 0, 0, 0, 0];
@@ -224,6 +241,13 @@ contract TicketsStorage is Accessibility {
     event LogHappyTicket(uint round, uint typeLottu, uint[] happyTicket);
     event LogWinnerTicket(uint round, uint typeLottu, uint numberTicket, uint countNumbers);
     event LogTest(uint[] value_1, uint value_2);
+
+    constructor() public {
+        getApiContract_4 = IGetApiContract_4(addressApiContract_4);
+        getApiContract_5 = IGetApiContract_5(addressApiContract_5);
+        getApiContract_6 = IGetApiContract_6(addressApiContract_6);
+        getApiContract_7 = IGetApiContract_7(addressApiContract_7);
+    }
 
     function getBalancePlayer(uint round, address wallet) public view returns (uint) {
         return balancePlayer[round][wallet];
@@ -422,55 +446,51 @@ contract TicketsStorage is Accessibility {
     }
 
     function makeHappyNumber(uint round, uint typeLottu) internal {
-        for (uint i = 0; i < countNumberLottu[typeLottu]; i++) {
-            uint happyNumber = findHappyNumbers(round, typeLottu);
-            happyTickets[round][typeLottu].push(happyNumber);
+        string memory strHappyNumber;
+        uint dateFromOraclize;
+        uint count;
+
+        if (typeLottu == 0 || typeLottu == 4) {
+            (strHappyNumber, dateFromOraclize) = getApiContract_4.getData();
+            count = 4;
         }
-        //for test's
-        if (round == 3 && typeLottu == 2) {
-            happyTickets[round][typeLottu] = [1, 3, 12, 19, 32, 42];
+        if (typeLottu == 1 || typeLottu == 5) {
+            (strHappyNumber, dateFromOraclize) = getApiContract_5.getData();
+            count = 5;
+        }
+        if (typeLottu == 2 || typeLottu == 6) {
+            (strHappyNumber, dateFromOraclize) = getApiContract_6.getData();
+            count = 6;
+        }
+        if (typeLottu == 3 || typeLottu == 7) {
+            (strHappyNumber, dateFromOraclize) = getApiContract_7.getData();
+            count = 7;
         }
 
+        makeFromOraclize(strHappyNumber, count, round, typeLottu);
+    }
+
+    function makeFromOraclize(string memory strNumbers, uint count, uint round, uint typeLottu) internal {
+        bytes32 tempString;
+        assembly {
+            tempString := mload(add(strNumbers, 32))
+        }
+        uint[] memory numbers = new uint [](count);
+        uint j = 0;
+        for (uint i=0; i<count; i++) {
+            if (bytes1ToUInt(tempString[j]) >=30 && bytes1ToUInt(tempString[j+1]) >=30) {
+                numbers[i] = bytes1ToUInt(tempString[j]).sub(30).mul(10) + bytes1ToUInt(tempString[j+1]).sub(30);
+                happyTickets[round][typeLottu].push(numbers[i]);
+            } else {
+                happyTickets[round][typeLottu].push(0);
+            }
+            j = j + 3;
+        }
         emit LogHappyTicket(round, typeLottu, happyTickets[round][typeLottu]);
     }
 
-    function findHappyNumbers(uint round, uint typeLottu) public onlyOwner returns (uint) {
-        uint happyNumber = getRandomNumber(range[typeLottu]);
-        while (checkRepeatNumber(happyNumber, round, typeLottu) == true) {
-            happyNumber++;
-            if (happyNumber > range[typeLottu]) {
-                happyNumber = 1;
-            }
-        }
-        return happyNumber;
-    }
-
-    function checkRepeatNumber(uint happyNumber, uint round, uint typeLottu) internal view returns (bool isRepeat) {
-        isRepeat = false;
-        uint lenArray = happyTickets[round][typeLottu].length;
-        if (lenArray > 0) {
-            for (uint i = 0; i < lenArray; i++) {
-                if (happyTickets[round][typeLottu][i] == happyNumber) {
-                    isRepeat = true;
-                }
-            }
-        }
-    }
-
-    function getRandomNumber(uint rangeNumber) internal returns (uint) {
-        entropyNumber = entropyNumber.add(1);
-        uint randomFirst = maxRandom(block.number, msg.sender).div(now);
-        uint randomNumber = randomFirst.mul(entropyNumber) % (66);
-        randomNumber = randomNumber % rangeNumber;
-        return randomNumber + 1;
-    }
-
-    function maxRandom(uint blockn, address entropy) internal view returns (uint randomNumber) {
-        return uint(keccak256(
-                abi.encodePacked(
-                    blockhash(blockn),
-                    entropy)
-            ));
+    function bytes1ToUInt(bytes1 b) public pure returns (uint number){
+        number = (uint(uint8(b) >> 4) & 0xF) * 10 + uint(uint8(b) & 0xF);
     }
 
     function roundEth(uint numerator, uint precision) public pure returns (uint round) {
@@ -480,8 +500,6 @@ contract TicketsStorage is Accessibility {
             round = (_numerator) * 10 ** (18 - precision);
         }
     }
-
-
 }
 
 contract Lottu is Accessibility {
@@ -493,16 +511,16 @@ contract Lottu is Accessibility {
     TicketsStorage private m_tickets;
     mapping(address => bool) private notUnigue;
 
-    address payable public advertisingFundWallet;
-    address payable public commissionsWallet;
-    address payable public technicalWallet;
-    address payable public supportWallet;
-    address payable public maintenanceWallet;
+    address payable private advertisingFundWallet;
+    address payable private commissionsWallet;
+    address payable private technicalWallet;
+    address payable private supportWallet;
+    address payable private maintenanceWallet;
 
     address payable public adminWallet;
 
     uint public transferTypeLottu;
-    uint public countTransfer;
+    uint private countTransfer;
 
     bool public isTwist;
     bool public isTransferPrize;
@@ -560,11 +578,11 @@ contract Lottu is Accessibility {
     }
 
 //    function convertMsgData(bytes memory data) internal pure returns (uint[] memory numbers) { //for test's
-    function convertMsgData(bytes memory data) public pure returns (uint[] memory numbers) { //for test's
+    function convertMsgData(bytes memory data) public view returns (uint[] memory numbers) { //for test's
         if (data.length > 0) {
             uint[] memory newNumbers = new uint [](data.length);
             for (uint i = 0; i < newNumbers.length; i++) {
-                newNumbers[i] = bytes1ToUInt(data[i]);
+                newNumbers[i] = m_tickets.bytes1ToUInt(data[i]);
             }
             numbers = newNumbers;
         }
@@ -721,10 +739,6 @@ contract Lottu is Accessibility {
         countTickets = m_tickets.getCountTickets(round, typeLottu);
     }
 
-    function findHappyNumbers(uint round, uint typeLottu) public returns (uint numb) {
-        numb = m_tickets.findHappyNumbers(round, typeLottu);
-    }
-
     function setAdministrationWallet(address payable newWallet, uint index) external onlyOwner {
         require(newWallet != address(0) && index < 5);
         address payable oldWallet = address(0);
@@ -771,10 +785,6 @@ contract Lottu is Accessibility {
                 emit SendToAdministrationWallet(_wallet, amount);
             }
         }
-    }
-
-    function bytes1ToUInt(bytes1 b) internal pure returns (uint number){
-        number = (uint(uint8(b) >> 4) & 0xF) * 10 + uint(uint8(b) & 0xF);
     }
 
 }

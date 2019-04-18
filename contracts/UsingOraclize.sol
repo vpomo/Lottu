@@ -1280,12 +1280,28 @@ contract usingOraclize {
 
 contract GetApiContract is usingOraclize {
 
-    string public number_4x20;
-    event UpdateNumber_4x20(string price);
+    string private happyNumber;
+    string public url;
+    uint private lastDate;
+    event UpdateNumber(string price);
     event newOraclizeQuery(string description);
 
-    constructor() public payable {
-        updateNumber_4x20();
+    constructor(uint typeLottu) public payable {
+        require(typeLottu > 3 && typeLottu < 8);
+        if (typeLottu == 4) {
+            url = "https://www.random.org/quick-pick/?tickets=1&lottery=4x20.0x0&format=plain";
+        }
+        if (typeLottu == 5) {
+            url = "https://www.random.org/quick-pick/?tickets=1&lottery=5x36.0x0&format=plain";
+        }
+        if (typeLottu == 6) {
+            url = "https://www.random.org/quick-pick/?tickets=1&lottery=6x49.0x0&format=plain";
+        }
+        if (typeLottu == 7) {
+            url = "https://www.random.org/quick-pick/?tickets=1&lottery=7x60.0x0&format=plain";
+        }
+        updateNumber();
+        lastDate = now;
     }
 
     function() external payable {
@@ -1293,18 +1309,23 @@ contract GetApiContract is usingOraclize {
 
     function __callback(bytes32 myid, string memory result) public {
         require (msg.sender == oraclize_cbAddress());
-        number_4x20 = result;
-        emit UpdateNumber_4x20(result);
+        happyNumber = result;
+        emit UpdateNumber(result);
     }
 
-    function updateNumber_4x20() public payable {
+    function updateNumber() public payable {
         if (oraclize_getPrice("URL") > address(this).balance) {
             emit newOraclizeQuery("Oraclize query was NOT sent, please add some ETH to cover for the query fee");
         } else {
             emit newOraclizeQuery("Oraclize query was sent, standing by for the answer..");
-            oraclize_query("URL", "https://www.random.org/quick-pick/?tickets=1&lottery=4x20.0x0&format=plain");
+            lastDate = now;
+            oraclize_query("URL", url);
         }
     }
+
+    function getData() external view returns (string memory newHappyNumber, uint actualDate) {
+        newHappyNumber = happyNumber;
+        actualDate = lastDate;
+    }
+
 }
-//0x7d75c30cfda88737f6f89018160b9ccf18fc0007
-//01-07-09-17

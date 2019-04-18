@@ -33,6 +33,7 @@ contract('Lottu', (accounts) => {
         assert.notEqual(undefined, contractSL.address);
     });
 
+/*
     it('check buy tickets', async () => {
         // msgData = [type, repeat, numbers[]]
         await contractSL.buyTicket(accounts[0], msgData_0, {from: accounts[0], value: buyEthOne});
@@ -63,7 +64,9 @@ contract('Lottu', (accounts) => {
         //await contractSL.sssssss();
 
     });
+*/
 
+/*
     it('check make distribution', async () => {
         var isTwist = await contractSL.isTwist.call();
         assert.equal(false, isTwist);
@@ -217,5 +220,11 @@ contract('Lottu', (accounts) => {
         //     console.log("number", Number(number));
         // }
     });
+*/
+
+    // it('check parse data from oraclize', async ()  => {
+    //     var checkParse = await contractSL.oraclizeToUint.call("01-07-09-17", 4);
+    //     console.log("checkParse", checkParse);
+    // });
 
 });
